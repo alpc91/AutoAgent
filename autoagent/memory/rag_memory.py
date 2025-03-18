@@ -16,7 +16,7 @@ class Memory:
             self,
             project_path: str,
             db_name: str = '.sa',
-            platform: str = 'OpenAI', 
+            platform: str = 'Qwen', 
             api_key: str = None, 
             embedding_model: str = "text-embedding-3-small"
     ):
@@ -40,7 +40,7 @@ class Memory:
             self.embedder = lambda x: [i.embedding for i in openai_client.embeddings.create(input=x, model=embedding_model).data]
         else:
             # self.embedder = embedding_functions.DefaultEmbeddingFunction()
-            self.embedder = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+            self.embedder = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2", local_files_only=True )
 
     def add_query(
             self,
@@ -177,3 +177,7 @@ class Reranker:
     @abstractmethod
     def rerank(self, query_text: str, query_results: List[Dict]) -> List[Dict]:
         raise NotImplementedError("Reranker is not implemented")
+    
+
+if __name__ == '__main__':
+    memory = Memory(project_path='.', platform='Qwen')

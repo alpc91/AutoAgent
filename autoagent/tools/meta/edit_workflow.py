@@ -259,7 +259,7 @@ def run_workflow(workflow_name: str, system_input: str, context_variables: dict)
     
     try:
         # query = shlex.quote(query)
-        # run_cmd = f'cd {path} && DEFAULT_LOG=False mc agent --model={model} --agent_func={agent_func} --query={query} {ctx_vars_str}'
+        # run_cmd = f'cd {path} && DEFAULT_LOG=False auto agent --model={model} --agent_func={agent_func} --query={query} {ctx_vars_str}'
         system_input = shlex.quote(system_input)
         # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         # create_directory(f"{path}/tmp_input", context_variables)
@@ -267,7 +267,7 @@ def run_workflow(workflow_name: str, system_input: str, context_variables: dict)
         # create_file(input_file, system_input, context_variables)
         shell_content = f"""#!/bin/bash
 cd {path}
-DEFAULT_LOG=False mc workflow --workflow_name={workflow_name} --system_input={system_input}
+DEFAULT_LOG=False auto workflow --workflow_name={workflow_name} --system_input={system_input}
 """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         create_directory(f"{path}/tmp_shell", context_variables)

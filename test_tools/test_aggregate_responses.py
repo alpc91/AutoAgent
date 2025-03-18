@@ -1,0 +1,1 @@
+from autoagent.tools import aggregate_responses; print(aggregate_responses(responses=['Hello', 'World'], context_variables={}))

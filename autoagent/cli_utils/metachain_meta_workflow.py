@@ -63,6 +63,7 @@ def workflow_editing(workflow_creator_agent, client, messages, context_variables
         """
         return f"Case not resolved. The desired workflow is not created or tested successfully. Details: {task_response}"
     workflow_creator_agent.functions.extend([case_resolved, case_not_resolved])
+
     messages.append({"role": "user", "content": f"""\
 WORKFLOW CREATION INSTRUCTIONS:
 The user's request to create workflow is: {requirements}
@@ -82,6 +83,8 @@ Remember: you can NOT stop util you have created the workflow and tested it succ
 """})
     response = client.run(workflow_creator_agent, messages, context_variables, debug=debug)
     content = response.messages[-1]["content"]
+    # if "</think>" in content:
+    #     content = content.split("</think>", 1)[1].lstrip()
     for i in range(MAX_RETRY):
         if content.startswith("Case resolved"):
             return content, messages

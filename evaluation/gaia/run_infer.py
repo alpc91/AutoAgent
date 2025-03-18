@@ -267,7 +267,8 @@ def main(args):
         git_clone=args.git_clone,
         test_pull_name=args.test_pull_name,
     )
-    log_path = osp.join(metadata.eval_output_dir, 'logs', f'agent_{metadata.model}.log')
+    log_path = osp.join(metadata.eval_output_dir, 'logs', f'agent_{metadata.model.replace("/","_")}.log')
+    print("log_path",log_path)
     LoggerManager.set_logger(MetaChainLogger(log_path))
 
     dataset = load_dataset('gaia-benchmark/GAIA', args.level)

@@ -37,7 +37,7 @@ You have access to the following functions:
 
 {description}
 
-If you choose to call a function ONLY reply in the following format with NO suffix:
+You must choose to call a function ONLY reply in the following format with NO suffix:
 
 <function=example_function_name>
 <parameter=example_parameter_1>value_1</parameter>
@@ -54,8 +54,8 @@ Reminder:
 - Required parameters MUST be specified
 - Only call one function at a time
 - You may provide optional reasoning for your function call in natural language BEFORE the function call, but NOT after.
-- If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls
 """
+# - If there is no function call available, answer the question like normal with your current knowledge and do not tell the user about function calls.
 
 STOP_WORDS = ['</function']
 

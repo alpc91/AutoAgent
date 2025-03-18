@@ -92,6 +92,8 @@ If ALL tools are created and tested successfully, you can stop and use `case_res
 """})
     response = client.run(tool_editor_agent, messages, context_variables, debug=debug)
     content = response.messages[-1]["content"]
+    # if "</think>" in content:
+    #     content = content.split("</think>", 1)[1].lstrip()
     for i in range(MAX_RETRY):
         if content.startswith("Case resolved"):
             return content, messages
@@ -122,6 +124,7 @@ def agent_editing(agent_creator_agent, client, messages, context_variables, agen
         """
         return f"Case not resolved. The desired agent(s) is not created or tested successfully. Details: {task_response}"
     agent_creator_agent.functions.extend([case_resolved, case_not_resolved])
+
     messages.append({"role": "user", "content": f"""\
 The user's request to create agent(s) is: {requirements}
 Given the completed agent form with XML format: {output_xml_form}
@@ -137,6 +140,8 @@ Note that you can NOT stop util you have created the agent(s) and tested it succ
 """})
     response = client.run(agent_creator_agent, messages, context_variables, debug=debug)
     content = response.messages[-1]["content"]
+    # if "</think>" in content:
+    #     content = content.split("</think>", 1)[1].lstrip()
     for i in range(MAX_RETRY):
         if content.startswith("Case resolved"):
             return content, messages

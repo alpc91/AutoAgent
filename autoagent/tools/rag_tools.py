@@ -13,6 +13,7 @@ from autoagent.environment.markdown_browser.mdconvert import MarkdownConverter
 from autoagent.memory.utils import chunking_by_token_size
 import math
 from autoagent.types import Result
+from constant import COMPLETION_MODEL, API_BASE_URL
 # @register_tool("load_db")
 # def load_db(db_path: str) -> str:
 
@@ -108,7 +109,7 @@ def save_raw_docs_to_vector_db(context_variables: dict, doc_name: str, saved_vec
                 
                 # Add the current batch of queries
                 memo.add_query(batch_queries, collection=saved_vector_db_name, idx=batch_idx)
-            ret_val += f"The {file} has been added to the vector database `{saved_vector_db_name}`."
+            ret_val += f"The {file} has been added to the vector database `{saved_vector_db_name}`.\n"
         context_variables["memo"] = memo
         return Result(
             value=ret_val,
@@ -132,10 +133,11 @@ def query_db(context_variables: dict, query_text: str, saved_vector_db_name: str
         A string representation of the queried results.
     """
     try:
-        memo: Memory = context_variables.get("memo", Memory(project_path=os.path.join(os.getcwd(), "user_db"), db_name = ".user_db"))
+        memo: Memory = context_variables.get("memo", Memory(project_path=os.path.join(os.getcwd(), "user_db"), db_name = ".user_db", platform = "Qwen"))
         assert memo is not None, "memo is not set"
         if memo.count(saved_vector_db_name) == 0:
-            return f"[ERROR] The vector database `{saved_vector_db_name}` does not exist. Please use function `save_raw_docs_to_vector_db` to save the raw documents to the vector database."
+            ret_val = f"[ERROR] The vector database `{saved_vector_db_name}` does not exist. Please use function `save_raw_docs_to_vector_db` to save the raw documents to the vector database."
+            return ret_val
         results = memo.query([query_text], collection=saved_vector_db_name, n_results=n_results)
             
         metadata_results = results['metadatas'][0]
@@ -183,7 +185,8 @@ def modify_query(what_you_know: str, query_text: str, **kwargs) -> str:
     Modified query:
     """
     create_params = {
-        "model": "gpt-4o-mini",
+        "model": COMPLETION_MODEL,
+        "base_url": API_BASE_URL,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
@@ -222,7 +225,8 @@ def answer_query(original_user_query: str, supporting_docs: str, **kwargs) -> st
     Answer:
     """
     create_params = {
-        "model": "gpt-4o-mini",
+        "model": COMPLETION_MODEL,
+        "base_url": API_BASE_URL,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
@@ -262,7 +266,8 @@ def can_answer(user_query: str, supporting_docs: str, **kwargs) -> str:
     Answer:
     """
     create_params = {
-        "model": "gpt-4o-mini",
+        "model": COMPLETION_MODEL,
+        "base_url": API_BASE_URL,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}

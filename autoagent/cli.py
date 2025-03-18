@@ -49,9 +49,9 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--model', default='gpt-4o-2024-08-06', help='the name of the model')
-@click.option('--agent_func', default='get_dummy_agent', help='the function to get the agent')
-@click.option('--query', default='...', help='the user query to the agent')
+@click.option('--model', default='openai/qwen-plus', help='the name of the model')
+@click.option('--agent_func', default='get_agentic_rag_orchestrator', help='the function to get the agent')
+@click.option('--query', default='先初始化RAG，然后帮我查一下MCTS-AHD这篇论文的主要贡献', help='the user query to the agent')
 @click.argument('context_variables', nargs=-1)
 def agent(model: str, agent_func: str, query: str, context_variables):
     """
@@ -62,9 +62,10 @@ def agent(model: str, agent_func: str, query: str, context_variables):
         query (str): The user query to the agent.
         context_variables (list): The context variables to pass to the agent.
     Usage:
-        mc agent --model=gpt-4o-2024-08-06 --agent_func=get_weather_agent --query="What is the weather in Tokyo?" city=Tokyo unit=C timestamp=2024-01-01
+        auto agent --model=gpt-4o-2024-08-06 --agent_func=get_weather_agent --query="What is the weather in Tokyo?" city=Tokyo unit=C timestamp=2024-01-01
     """ 
-    context_storage = {}
+    print(query)
+    context_storage = {"doc_name": "db", "saved_vector_db_name":"rag_db"}#{}
     for arg in context_variables:
         if '=' in arg:
             key, value = arg.split('=', 1)
@@ -84,8 +85,8 @@ def agent(model: str, agent_func: str, query: str, context_variables):
     return response.messages[-1]['content']
 
 @cli.command()
-@click.option('--workflow_name', default=None, help='the name of the workflow')
-@click.option('--system_input', default='...', help='the user query to the agent')
+@click.option('--workflow_name', default='math_problem_solving_workflow', help='the name of the workflow')
+@click.option('--system_input', default='Find $k$, if ${(3^k)}^6=3^6$.', help='the user query to the agent')
 def workflow(workflow_name: str, system_input: str):
     """命令行函数的同步包装器"""
     return asyncio.run(async_workflow(workflow_name, system_input))
@@ -181,7 +182,7 @@ def update_guidance(context_variables):
 @click.option('--port', default=12347, help='the port to run the container')
 @click.option('--test_pull_name', default='autoagent_mirror', help='the name of the test pull')
 @click.option('--git_clone', default=True, help='whether to clone a mirror of the repository')
-@click.option('--local_env', default=False, help='whether to use local environment')
+@click.option('--local_env', default=True, help='whether to use local environment')#True False
 def main(container_name: str, port: int, test_pull_name: str, git_clone: bool, local_env: bool):
     """
     Run deep research with a given model, container name, port
@@ -211,9 +212,8 @@ def main(container_name: str, port: int, test_pull_name: str, git_clone: bool, l
         progress.update(task, description="[cyan]Setting up autoagent...[/cyan]\n")
     
     clear_screen()
-
     context_variables = {"working_dir": docker_config.workplace_name, "code_env": code_env, "web_env": web_env, "file_env": file_env}
-
+    print(context_variables)
     # select the mode
     while True:
         update_guidance(context_variables)
@@ -424,3 +424,8 @@ def deep_research(container_name: str, port: int, local_env: bool):
         else: 
             console.print(f"[bold red]Unknown agent: {agent}[/bold red]")
     
+
+if __name__ == '__main__':
+    main()
+    # agent()
+    # workflow()

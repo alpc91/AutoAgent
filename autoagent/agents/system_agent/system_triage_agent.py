@@ -28,6 +28,7 @@ There are three agents you can transfer to:
 """
     tool_choice = "required" 
     tools = [case_resolved, case_not_resolved] if tool_choice == "required" else []
+        
     system_triage_agent = Agent(
         name="System Triage Agent",
         model=model, 

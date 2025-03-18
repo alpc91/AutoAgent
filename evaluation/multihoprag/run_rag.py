@@ -1,8 +1,9 @@
 from constant import DOCKER_WORKPLACE_NAME
-from autoagent.environment.docker_container import init_container
+# from autoagent.environment.docker_env import init_container
+from autoagent import MetaChain
 from autoagent.io_utils import read_yaml_file, get_md5_hash_bytext
 from autoagent.agents import get_rag_agent
-from autoagent.core import AutoAgent
+# from autoagent.core import AutoAgent
 from autoagent.environment.docker_env import DockerEnv, DockerConfig, with_env
 import argparse
 import asyncio
@@ -21,7 +22,7 @@ def get_args():
     args = parser.parse_args()
     return args
 
-def get_env(container_name: str = 'gaia_test', model: str = 'gpt-4o-mini-2024-07-18', git_clone: bool = False, setup_package: str = 'lite_pkgs', test_pull_name: str = 'test_pull_1010', debug: bool = True):
+def get_env(container_name: str = 'gaia_test', model: str = 'gpt-4o-mini-2024-07-18', git_clone: bool = False, setup_package: str = 'lite_pkgs', debug: bool = True):
     workplace_name = DOCKER_WORKPLACE_NAME
     docker_config = DockerConfig(container_name=container_name, workplace_name=workplace_name, communication_port=12345, conda_path='/home/user/micromamba')
     docker_env = DockerEnv(docker_config)
@@ -42,12 +43,12 @@ def append_to_json(file_path, entry):
 
 
 
-async def main(container_name: str = 'gaia_test', model: str = 'gpt-4o-mini-2024-07-18', git_clone: bool = False, setup_package: str = 'lite_pkgs', test_pull_name: str = 'test_pull_1010', debug: bool = True, task_instructions: str = None):
+async def main(container_name: str = 'gaia_test', model: str = 'gpt-4o-mini-2024-07-18', git_clone: bool = False, setup_package: str = 'lite_pkgs', debug: bool = True, task_instructions: str = None):
     workplace_name = DOCKER_WORKPLACE_NAME
-    # docker_env = get_env(container_name, model, git_clone, setup_package, test_pull_name, debug)
-    # docker_env.init_container()
+    docker_env = get_env(container_name, model, git_clone, setup_package, debug)
+    docker_env.init_container()
 
-    csv_file_path = './MultiHopRAG.csv'
+    csv_file_path = './MultiHopRAG.json'
     json_path = './result.json'
 
     question_list=[]
@@ -89,4 +90,4 @@ async def main(container_name: str = 'gaia_test', model: str = 'gpt-4o-mini-2024
 
 if __name__ == "__main__":
     args = get_args()
-    asyncio.run(main(args.container_name, args.model, args.git_clone, args.setup_package, args.test_pull_name, args.debug))
+    asyncio.run(main(args.container_name, args.model, args.git_clone, args.setup_package, args.debug))

@@ -76,7 +76,20 @@ class MetaChainLogger:
     def _print_assistant_message(self, message, timestamp: str):
         if MC_MODE: colors = ["grey58"] * 3
         else: colors = ["light_salmon3", "blue", "purple"]
-        self.console.print(self._wrap_title("Assistant Message", f"bold {colors[0]}"))
+        self.console.print(self._wrap_title("Assistant Message: reasoning_content", f"bold {colors[0]}"))
+        self.console.print(f"{self._wrap_timestamp(timestamp, color=True)}\n[bold {colors[1]}]{message['sender']}[/bold {colors[1]}]:", end=" ")
+        if message["reasoning_content"]: 
+            print_str = escape(message["reasoning_content"])
+            if MC_MODE: print_str = f"[grey58]{print_str}[/grey58]"
+            self.console.print(print_str, highlight=True, emoji=True) 
+        else: 
+            print_str = None
+            if MC_MODE: print_str = "[grey58]None[/grey58]"
+            self.console.print(print_str, highlight=True, emoji=True)
+
+        if MC_MODE: colors = ["grey58"] * 3
+        else: colors = ["light_salmon3", "blue", "purple"]
+        self.console.print(self._wrap_title("Assistant Message: content", f"bold {colors[0]}"))
         self.console.print(f"{self._wrap_timestamp(timestamp, color=True)}\n[bold {colors[1]}]{message['sender']}[/bold {colors[1]}]:", end=" ")
         if message["content"]: 
             print_str = escape(message["content"])

@@ -23,9 +23,13 @@ evaluation/*/data/*
 evaluation/**/data/
 
 .env
+.vscode/
 
 terminal_tmp/*
 
 !tool_docs.csv
 
 .port*
+
+tmp_shell/
+user_db/
