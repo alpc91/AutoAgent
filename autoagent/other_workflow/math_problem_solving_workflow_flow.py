@@ -17,22 +17,22 @@ def extract_answer(response: str, key: str):
 
 from autoagent.agents import get_math_solver_agent
 
-from autoagent.agents import get_coding_agent
-
 from autoagent.agents import get_vote_aggregator_agent
+
+from autoagent.agents import get_coding_agent
 @default_drive.make_event
 async def on_start(event: EventInput, global_ctx):
     print("start the workflow:" + 'math_problem_solving_workflow')
 @default_drive.listen_group([on_start])
-async def solve_math_problem(event: EventInput, global_ctx):
-    inputs = [{'key': 'math_problem', 'description': '用户提供的数学问题描述。'}]
+async def math_solve(event: EventInput, global_ctx):
+    inputs = [{'key': 'user_query', 'description': "The user's math problem to solve."}]
     input_dict = dict()
     for inp in inputs: 
         input_dict[inp["key"]] = global_ctx.get(inp["key"], None)
     
     messages = global_ctx.get('messages', [])
-    task = '使用 Math Solver Agent 提供多种解决方案。'
-    outputs = [{'key': 'solutions', 'description': '由 Math Solver Agent 生成的多个解决方案。', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
+    task = 'Solve the math problem using analytical and systematic approaches.'
+    outputs = [{'key': 'math_solution', 'description': 'The solution provided by the Math Solver Agent.', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
     agent = get_math_solver_agent('openai/qwen-plus')
     
 
@@ -65,16 +65,16 @@ async def solve_math_problem(event: EventInput, global_ctx):
             global_ctx[output["key"]] = result
             return result
     raise Exception("No valid answer found")
-@default_drive.listen_group([solve_math_problem])
-async def verify_solutions_with_code(event: EventInput, global_ctx):
-    inputs = [{'key': 'solutions', 'description': '由 Math Solver Agent 生成的多个解决方案。'}]
+@default_drive.listen_group([on_start])
+async def code_solve(event: EventInput, global_ctx):
+    inputs = [{'key': 'user_query', 'description': "The user's math problem to solve."}]
     input_dict = dict()
     for inp in inputs: 
         input_dict[inp["key"]] = global_ctx.get(inp["key"], None)
     
     messages = global_ctx.get('messages', [])
-    task = '使用 Coding Agent 编写代码以验证解决方案的有效性。'
-    outputs = [{'key': 'verified_solutions', 'description': '经过 Coding Agent 验证后的有效解决方案。', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
+    task = 'Write and execute code to solve the math problem.'
+    outputs = [{'key': 'code_solution', 'description': 'The solution provided by the Coding Agent.', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
     agent = get_coding_agent('openai/qwen-plus')
     
 
@@ -107,16 +107,16 @@ async def verify_solutions_with_code(event: EventInput, global_ctx):
             global_ctx[output["key"]] = result
             return result
     raise Exception("No valid answer found")
-@default_drive.listen_group([verify_solutions_with_code])
-async def aggregate_and_determine_final_answer(event: EventInput, global_ctx):
-    inputs = [{'key': 'verified_solutions', 'description': '经过 Coding Agent 验证后的有效解决方案。'}]
+@default_drive.listen_group([math_solve, code_solve])
+async def aggregate_solutions(event: EventInput, global_ctx):
+    inputs = [{'key': 'math_solution', 'description': 'The solution provided by the Math Solver Agent.'}, {'key': 'code_solution', 'description': 'The solution provided by the Coding Agent.'}]
     input_dict = dict()
     for inp in inputs: 
         input_dict[inp["key"]] = global_ctx.get(inp["key"], None)
     
     messages = global_ctx.get('messages', [])
-    task = '使用 Vote Aggregator Agent 聚合所有解决方案并选择最终答案。'
-    outputs = [{'key': 'final_answer', 'description': '最终确定的数学问题答案。', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
+    task = 'Aggregate the solutions from different agents and determine the final answer through majority voting.'
+    outputs = [{'key': 'solution', 'description': 'The final aggregated solution.', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
     agent = get_vote_aggregator_agent('openai/qwen-plus')
     
 
@@ -152,10 +152,10 @@ async def aggregate_and_determine_final_answer(event: EventInput, global_ctx):
 
 @register_workflow(name = 'math_problem_solving_workflow')
 async def math_problem_solving_workflow(system_input: str):
-    storage_results = dict(math_problem = system_input)
+    storage_results = dict(user_query = system_input)
     await default_drive.invoke_event(
         on_start,
         global_ctx=storage_results,
     )
-    system_output = storage_results.get('final_answer', None)
+    system_output = storage_results.get('solution', None)
     return system_output

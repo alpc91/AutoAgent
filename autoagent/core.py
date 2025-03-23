@@ -171,7 +171,7 @@ class MetaChain:
                 "top_p": 0.95,
                 "top_k": 40,
                 "min_p": 0,
-                "max_tokens": 32768  # 设置最大输出长度
+                # "max_tokens": 32768  # 设置最大输出长度
             }
             NO_SENDER_MODE = False
             for not_sender_model in NOT_SUPPORT_SENDER:
@@ -198,6 +198,7 @@ class MetaChain:
 
             if tools and create_params['model'].startswith("gpt"):
                 create_params["parallel_tool_calls"] = agent.parallel_tool_calls
+            print(create_params)
             completion_response = completion(**create_params)
 
             if completion_response.choices[0].message.tool_calls == None and (agent.tool_choice == "required" or agent.tool_choice == "auto"):
@@ -214,8 +215,9 @@ class MetaChain:
                     "top_p": 0.95,
                     "top_k": 40,
                     "min_p": 0,
-                    "max_tokens": 32768  # 设置最大输出长度
+                    # "max_tokens": 32768  # 设置最大输出长度
                 }
+                print(create_params)
                 completion_response = completion(**create_params)
 
                 last_message = [{"role": "assistant", "content": completion_response.choices[0].message.content}]
@@ -668,7 +670,7 @@ class MetaChain:
                 "top_p": 0.95,
                 "top_k": 40,
                 "min_p": 0,
-                "max_tokens": 32768  # 设置最大输出长度
+                # "max_tokens": 32768  # 设置最大输出长度
             }
             NO_SENDER_MODE = False
             for not_sender_model in NOT_SUPPORT_SENDER:
@@ -711,7 +713,7 @@ class MetaChain:
                     "top_p": 0.95,
                     "top_k": 40,
                     "min_p": 0,
-                    "max_tokens": 32768  # 设置最大输出长度
+                    # "max_tokens": 32768  # 设置最大输出长度
                 }
                 completion_response = await acompletion(**create_params)
 

@@ -110,7 +110,7 @@ def clear_screen():
 def get_config(container_name, port, test_pull_name="main", git_clone=False):
     container_name = container_name
     
-    port_info = check_container_ports(container_name)
+    port_info = None#ccheck_container_ports(container_name)
     if port_info:
         port = port_info[0]
     else:

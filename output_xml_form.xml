@@ -1,0 +1,134 @@
+<workflow>
+    <name>math_problem_solving_workflow</name>
+    <system_input>
+        <key>math_problem</key>
+        <description>需要解决的数学问题。</description>
+    </system_input>
+    <system_output>
+        <key>final_answer</key>
+        <description>数学问题的最终答案。</description>
+    </system_output>
+    <agents>
+        <agent category="existing">
+            <name>Math Solver Agent</name>
+            <description>此代理用于解决数学问题，使用分析和系统化的方法。</description>
+        </agent>
+        <agent category="existing">
+            <name>Coding Agent</name>
+            <description>此代理用于通过编写和执行代码来解决数学问题。</description>
+        </agent>
+        <agent category="existing">
+            <name>Vote Aggregator Agent</name>
+            <description>此代理用于聚合来自不同解算器的解决方案，并通过多数投票确定最终答案。</description>
+        </agent>
+    </agents>
+    <events>
+        <event>
+            <name>on_start</name>
+            <inputs>
+                <input>
+                    <key>math_problem</key>
+                    <description>需要解决的数学问题。</description>
+                </input>
+            </inputs>
+            <outputs>
+                <output>
+                    <key>math_problem</key>
+                    <description>需要解决的数学问题。</description>
+                    <action>
+                        <type>RESULT</type>
+                    </action>
+                </output>
+            </outputs>
+        </event>
+        <event>
+            <name>solve_with_math_solver</name>
+            <inputs>
+                <input>
+                    <key>math_problem</key>
+                    <description>需要解决的数学问题。</description>
+                </input>
+            </inputs>
+            <task>
+                使用 Math Solver Agent 解决数学问题。
+            </task>
+            <outputs>
+                <output>
+                    <key>math_solution</key>
+                    <description>由 Math Solver Agent 提供的数学问题解决方案。</description>
+                    <action>
+                        <type>RESULT</type>
+                    </action>
+                </output>
+            </outputs>
+            <listen>
+                <event>on_start</event>
+            </listen>
+            <agent>
+                <name>Math Solver Agent</name>
+                <model>openai/qwen-plus</model>
+            </agent>
+        </event>
+        <event>
+            <name>solve_with_coding_agent</name>
+            <inputs>
+                <input>
+                    <key>math_problem</key>
+                    <description>需要解决的数学问题。</description>
+                </input>
+            </inputs>
+            <task>
+                使用 Coding Agent 编写代码来解决数学问题。
+            </task>
+            <outputs>
+                <output>
+                    <key>code_solution</key>
+                    <description>由 Coding Agent 提供的数学问题解决方案。</description>
+                    <action>
+                        <type>RESULT</type>
+                    </action>
+                </output>
+            </outputs>
+            <listen>
+                <event>on_start</event>
+            </listen>
+            <agent>
+                <name>Coding Agent</name>
+                <model>openai/qwen-plus</model>
+            </agent>
+        </event>
+        <event>
+            <name>aggregate_results</name>
+            <inputs>
+                <input>
+                    <key>math_solution</key>
+                    <description>由 Math Solver Agent 提供的数学问题解决方案。</description>
+                </input>
+                <input>
+                    <key>code_solution</key>
+                    <description>由 Coding Agent 提供的数学问题解决方案。</description>
+                </input>
+            </inputs>
+            <task>
+                使用 Vote Aggregator Agent 聚合结果并确定最终答案。
+            </task>
+            <outputs>
+                <output>
+                    <key>final_answer</key>
+                    <description>数学问题的最终答案。</description>
+                    <action>
+                        <type>RESULT</type>
+                    </action>
+                </output>
+            </outputs>
+            <listen>
+                <event>solve_with_math_solver</event>
+                <event>solve_with_coding_agent</event>
+            </listen>
+            <agent>
+                <name>Vote Aggregator Agent</name>
+                <model>openai/qwen-plus</model>
+            </agent>
+        </event>
+    </events>
+</workflow>

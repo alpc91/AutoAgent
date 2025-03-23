@@ -74,18 +74,19 @@ class MetaChainLogger:
         self._write_log(self._wrap_title("Tool Execution"))
         self._write_log(f"{self._wrap_timestamp(timestamp, color=False)}\ntool execution: {message['name']}\nResult:\n---\n{message['content']}\n---")
     def _print_assistant_message(self, message, timestamp: str):
-        if MC_MODE: colors = ["grey58"] * 3
-        else: colors = ["light_salmon3", "blue", "purple"]
-        self.console.print(self._wrap_title("Assistant Message: reasoning_content", f"bold {colors[0]}"))
-        self.console.print(f"{self._wrap_timestamp(timestamp, color=True)}\n[bold {colors[1]}]{message['sender']}[/bold {colors[1]}]:", end=" ")
-        if message["reasoning_content"]: 
-            print_str = escape(message["reasoning_content"])
-            if MC_MODE: print_str = f"[grey58]{print_str}[/grey58]"
-            self.console.print(print_str, highlight=True, emoji=True) 
-        else: 
-            print_str = None
-            if MC_MODE: print_str = "[grey58]None[/grey58]"
-            self.console.print(print_str, highlight=True, emoji=True)
+        if "reasoning_content" in message:
+            if MC_MODE: colors = ["grey58"] * 3
+            else: colors = ["light_salmon3", "blue", "purple"]
+            self.console.print(self._wrap_title("Assistant Message: reasoning_content", f"bold {colors[0]}"))
+            self.console.print(f"{self._wrap_timestamp(timestamp, color=True)}\n[bold {colors[1]}]{message['sender']}[/bold {colors[1]}]:", end=" ")
+            if message["reasoning_content"]: 
+                print_str = escape(message["reasoning_content"])
+                if MC_MODE: print_str = f"[grey58]{print_str}[/grey58]"
+                self.console.print(print_str, highlight=True, emoji=True) 
+            else: 
+                print_str = None
+                if MC_MODE: print_str = "[grey58]None[/grey58]"
+                self.console.print(print_str, highlight=True, emoji=True)
 
         if MC_MODE: colors = ["grey58"] * 3
         else: colors = ["light_salmon3", "blue", "purple"]

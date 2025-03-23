@@ -6,13 +6,24 @@ from prompt_toolkit.styles import Style
 from autoagent.logger import LoggerManager, MetaChainLogger 
 from rich.console import Console
 from rich.panel import Panel
+from autoagent.agents.meta_agent.workflow_generator import get_workflow_generator_agent
 from autoagent.agents.meta_agent.workflow_former import get_workflow_former_agent
 from autoagent.agents.meta_agent.workflow_creator import get_workflow_creator_agent
 import re
 from autoagent.agents.meta_agent.worklow_form_complie import parse_workflow_form, WorkflowForm
 
-def workflow_profiling(workflow_former, client, messages, context_variables, requirements, debug):
+def workflow_generating(workflow_generator, client, messages, context_variables, requirements, debug):
     messages.append({"role": "user", "content": requirements + """
+Directly output the form in the XML format without ANY other text.
+"""})
+    response = client.run(workflow_generator, messages, context_variables, debug=debug)
+    workflow = response.messages[-1]["content"]
+    messages.extend(response.messages)
+
+    return workflow, messages
+
+def workflow_profiling(workflow_former, client, messages, context_variables, advice, debug):
+    messages.append({"role": "user", "content": advice + """
 Directly output the form in the XML format without ANY other text.
 """})
     response = client.run(workflow_former, messages, context_variables, debug=debug)
@@ -23,6 +34,9 @@ Directly output the form in the XML format without ANY other text.
     for i in range(MAX_RETRY):
         workflow_form = parse_workflow_form(output_xml_form)
         if isinstance(workflow_form, WorkflowForm):
+            # 如果成功解析XML为workflow form，则保存成xml文件
+            with open("workflow_form.xml", "w") as f:
+                f.write(output_xml_form)
             break
         elif isinstance(workflow_form, str):
             print(f"Error parsing XML to workflow form: {workflow_form}. Retry {i+1}/{MAX_RETRY}")
@@ -119,11 +133,12 @@ The last attempt failed with the following error: {content}, please try again to
 def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     print('\033[s\033[?25l', end='')  # Save cursor position and hide cursor
     logger = LoggerManager.get_logger()
+    workflow_generator = get_workflow_generator_agent(model)
     workflow_former = get_workflow_former_agent(model)
     workflow_creator_agent = get_workflow_creator_agent(model)
 
-    agent = workflow_former
-    agents = {workflow_former.name.replace(' ', '_'): workflow_former, workflow_creator_agent.name.replace(' ', '_'): workflow_creator_agent}
+    agent = workflow_generator
+    agents = {workflow_generator.name.replace(' ', '_'): workflow_generator, workflow_former.name.replace(' ', '_'): workflow_former, workflow_creator_agent.name.replace(' ', '_'): workflow_creator_agent}
     style = Style.from_dict({
         'bottom-toolbar': 'bg:#333333 #ffffff',
     })
@@ -138,18 +153,24 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     console = Console()
     messages = []
 
-    last_message = "Tell me what do you want to create with `Workflow Chain`?"
-
+    last_message = "请告诉我您想要创建MCT节点实例的需求是什么？"#请告诉我您想要创建什么实例（选择哪些智能代理，形成什么工作流）？"#"Tell me what do you want to create with `Workflow Chain`?"
+    workflow = None
+    workflow_form = None
     while True:
         query = session.prompt(
             f'{last_message} (type "exit" to quit, press "Enter" to continue): ',
             bottom_toolbar=HTML('<b>Prompt:</b> Enter <b>@</b> to mention Agents'), 
         )
         if query.strip().lower() == 'exit':
-            
             logo_text = "Workflow Chain completed. See you next time! :waving_hand:"
             console.print(Panel(logo_text, style="bold salmon1", expand=True))
             break
+        if agent.name == "Workflow Generator Agent" and query=="" and workflow:
+            agent = workflow_former
+
+        if agent.name == "Workflow Former Agent" and query=="" and workflow_form:
+            agent = workflow_creator_agent
+
         words = query.split()
         console.print(f"[bold green]Your request: {query}[/bold green]", end=" ")
         for word in words:
@@ -163,35 +184,58 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
         agent_name = agent.name
         console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] will help you, be patient...[/bold green]")
         match agent_name:
-            case "Workflow Former Agent":
+            case "Workflow Generator Agent":
                 if query == "":
-                    console.print(f"[bold red]There MUST be a request to create the agent form.[/bold red]")
+                    console.print(f"[bold red]必须输入实例要求。[/bold red]")#f"[bold red]There MUST be a request to create the agent form.[/bold red]")
                     continue
                 requirements = query
-                workflow_form, output_xml_form, messages = workflow_profiling(workflow_former, client, messages, context_variables, requirements, debug)
+                workflow, messages = workflow_generating(workflow_generator, client, messages, context_variables, requirements, debug)
+                # workflow = "这是一个节点实例的语言描述"
+                agent = workflow_generator
+                console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 生成的MCT节点实例语言描述:\n[/bold green][bold blue]{workflow}[/bold blue]")
+                last_message = '如果符合你的要求，请按"Enter"回车，将为你进一步生成格式化xml文件以进行前端展示；否则，请提出具体修改建议。'
+                # console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has generator workflow successfully with the following details:\n[/bold green][bold blue]{workflow}[/bold blue]")
+                # last_message = "It is time to create the desired workflow xml, do you have any suggestions for creating the workflow?"
+            case "Workflow Former Agent":
+                # if query == "":
+                #     console.print(f"[bold red]必须输入实例要求。[/bold red]")#f"[bold red]There MUST be a request to create the agent form.[/bold red]")
+                #     continue
+                advice = query
+                workflow_form, output_xml_form, messages = workflow_profiling(workflow_former, client, messages, context_variables, advice, debug)
+                # workflow_form = "这是一个节点实例的xml描述"
+                # output_xml_form = "这是一个节点实例的xml输出"
                 if workflow_form is None:
-                    console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] has not created workflow form successfully, please modify your requirements again.[/bold red]")
-                    last_message = "Tell me what do you want to create with `Workflow Chain`?"
+                    console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] xml文件生成失败, 请给出修改建议.[/bold red]")
+                    last_message = "请提出具体修改建议或告诉我您想要创建MCT节点实例的需求是什么？"
+                    # console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] has not created workflow form successfully, please modify your requirements again.[/bold red]")
+                    # last_message = "Tell me what do you want to create with `Workflow Chain`?"
                     continue
-                agent = workflow_creator_agent
+                agent = workflow_former 
                 context_variables["workflow_form"] = workflow_form
-                console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has created workflow form successfully with the following details:\n[/bold green][bold blue]{output_xml_form}[/bold blue]")
-                last_message = "It is time to create the desired workflow, do you have any suggestions for creating the workflow?"
+
+                console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 生成的xml为:\n[/bold green][bold blue]{output_xml_form}[/bold blue]")
+                last_message = '如果符合你的要求，请按"Enter"回车，将为进行前端展示并开始生成协作工作流python脚本并驱动后端开始执行；否则，请提出具体修改建议。'
+                # console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has created workflow form successfully with the following details:\n[/bold green][bold blue]{output_xml_form}[/bold blue]")
+                # last_message = "It is time to create the desired workflow python code, do you have any suggestions for creating the workflow?"
             case "Workflow Creator Agent":
-                suggestions = query
-                default_value='Come up with a task for the workflow to test your created workflow, and use `run_workflow` tool to test your created workflow.'  # 这里设置你想要的默认值
-                task = session.prompt(
-                'It is time to create the desired workflow, what task do you want to complete with the workflow? (Press Enter if none): ',
-                
-                )
+                suggestions = query #进来实际为""
+                # default_value= '该阶段的系统输入是XXX，请根据输入，使用 `run_workflow` tool来执行之前生成的协作工作流程以获取该阶段的系统输出'
+                default_value = 'Come up with a task for the workflow to test your created workflow, and use `run_workflow` tool to test your created workflow.'  # 这里设置你想要的默认值 
+                task = ""
+                # session.prompt(
+                # 'It is time to create the desired workflow, what task do you want to complete with the workflow? (Press Enter if none): ',
+                # )
                 task = default_value if not task.strip() else task
                 agent_response, messages = workflow_editing(workflow_creator_agent, client, messages, context_variables, workflow_form, output_xml_form, requirements, task, debug, suggestions)
                 if agent_response.startswith("Case not resolved"):
-                    console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] has not created workflow successfully with the following error: {agent_response}[/bold red]")
+                    # console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] has not created workflow successfully with the following error: {agent_response}[/bold red]")
+                    console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] 驱动后台执行失败，原因如下: {agent_response}[/bold red]")
                     agent = workflow_creator_agent
                 else:
-                    console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has created workflow successfully with the following details:\n[/bold green][bold blue]{agent_response}[/bold blue]")
-                    last_message = "Tell me what do you want to create with `Workflow Chain` next?"
+                    # console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has created workflow successfully with the following details:\n[/bold green][bold blue]{agent_response}[/bold blue]")
+                    # last_message = "Tell me what do you want to create with `Workflow Chain` next?"
+                    console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 已经驱动后台执行:\n[/bold green][bold blue]{agent_response}[/bold blue]")
+                    last_message = "请输入exit退出"
     
     
     

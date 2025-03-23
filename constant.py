@@ -58,10 +58,10 @@ ADD_USER = str_to_bool(os.getenv('ADD_USER', None))
 
 
 
-NOT_SUPPORT_SENDER = ["mistral", "groq"]
-MUST_ADD_USER = ["deepseek-reasoner", "o1-mini", "deepseek-r1","DeepSeek-R1-Distill-Qwen-7B"]#,"qwq-32b","QwQ-32B"
+NOT_SUPPORT_SENDER = ["mistral", "groq"]#,"QwQ-32B-AWQ"]
+MUST_ADD_USER = ["deepseek-reasoner", "o1-mini", "deepseek-r1","DeepSeek-R1-Distill-Qwen-1.5B"]#,"qwq-32b","QwQ-32B"
 
-NOT_SUPPORT_FN_CALL = ["o1-mini", "deepseek-reasoner", "deepseek-r1", "llama", "grok-2","DeepSeek-R1-Distill-Qwen-7B"]#,"qwq-32b","QwQ-32B"
+NOT_SUPPORT_FN_CALL = ["o1-mini", "deepseek-reasoner", "deepseek-r1", "llama", "grok-2","DeepSeek-R1-Distill-Qwen-1.5B"]#,"qwq-32b","QwQ-32B"
 NOT_USE_FN_CALL = [ "deepseek-chat"] + NOT_SUPPORT_FN_CALL
 
 if ADD_USER is None:
