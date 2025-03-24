@@ -54,6 +54,8 @@ MC_MODE = str_to_bool(os.getenv('MC_MODE', True))
 
 FN_CALL = str_to_bool(os.getenv('FN_CALL', None))
 API_BASE_URL = os.getenv('API_BASE_URL', None)
+QWQ_BASE_URL = os.getenv('API_BASE_URL', None)
+QWEN_BASE_URL = os.getenv('API_BASE_URL', None)
 ADD_USER = str_to_bool(os.getenv('ADD_USER', None))
 
 

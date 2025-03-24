@@ -30,7 +30,7 @@ from tenacity import (
 from openai import AsyncOpenAI
 import litellm
 import inspect
-from constant import MC_MODE, FN_CALL, API_BASE_URL, NOT_SUPPORT_SENDER, ADD_USER, NON_FN_CALL
+from constant import MC_MODE, FN_CALL, API_BASE_URL, QWEN_BASE_URL, QWQ_BASE_URL, NOT_SUPPORT_SENDER, ADD_USER, NON_FN_CALL
 from autoagent.fn_call_converter import convert_tools_to_description, convert_non_fncall_messages_to_fncall_messages, SYSTEM_PROMPT_SUFFIX_TEMPLATE, convert_fn_messages_to_non_fn_messages, interleave_user_into_messages
 from litellm.types.utils import Message as litellmMessage
 # litellm.set_verbose=True
@@ -148,25 +148,185 @@ class MetaChain:
 
         create_model = model_override or agent.model
 
+        if 'qwen' in create_model.lower():
+            base_url = QWEN_BASE_URL
+        elif 'qwq' in create_model.lower():
+            base_url = QWQ_BASE_URL
+        else:
+            base_url = API_BASE_URL
+
+        if 'qwq' in create_model:
+            stream = True
+
         if "gemini" in create_model.lower():
             tools = adapt_tools_for_gemini(tools)
-        if FN_CALL:
-            # create_model = model_override or agent.model
-            # assert litellm.supports_function_calling(model = create_model) == True, f"Model {create_model} does not support function calling, please set `FN_CALL=False` to use non-function calling mode"
-            if agent.tool_choice:
-                if  agent.tool_choice == "required" and "QwQ" in create_model:
-                    agent.tool_choice = 'auto'
-            # else:
-            #     if "QwQ" in create_model:
-            #         agent.tool_choice = 'none'
 
+        if agent.tool_choice:
+            if  agent.tool_choice == "required" and "QwQ" in create_model:
+                agent.tool_choice = 'auto'
+            if FN_CALL and 'qwq' not in create_model.lower():
+                # create_model = model_override or agent.model
+                # assert litellm.supports_function_calling(model = create_model) == True, f"Model {create_model} does not support function calling, please set `FN_CALL=False` to use non-function calling mode"
+
+                create_params = {
+                    "model": create_model,
+                    "messages": messages,
+                    "tools": tools or None,
+                    "tool_choice": agent.tool_choice,
+                    "stream": stream,
+                    "base_url": base_url,
+                    "temperature": 0.6,
+                    "top_p": 0.95,
+                    "top_k": 40,
+                    "min_p": 0,
+                    # "max_tokens": 32768  # 设置最大输出长度
+                }
+                NO_SENDER_MODE = False
+                for not_sender_model in NOT_SUPPORT_SENDER:
+                    if not_sender_model in create_model:
+                        NO_SENDER_MODE = True
+                        break
+
+                if NO_SENDER_MODE:
+                    messages = create_params["messages"]
+                    for message in messages:
+                        if 'sender' in message:
+                            del message['sender']
+                    create_params["messages"] = messages
+
+                if "QwQ-32B" in create_model:
+                    messages = create_params["messages"]
+                    for message in messages:
+                        # Make sure tool_calls is a list if it exists, or remove it entirely
+                        if 'tool_calls' in message and message['tool_calls'] is None:
+                            del message['tool_calls']
+                        elif 'tool_calls' in message and not isinstance(message['tool_calls'], list):
+                            message['tool_calls'] = list(message['tool_calls'].values()) if message['tool_calls'] else []
+                    create_params["messages"] = messages
+
+                if tools and create_params['model'].startswith("gpt"):
+                    create_params["parallel_tool_calls"] = agent.parallel_tool_calls
+                print(create_params)
+                completion_response = completion(**create_params)
+
+                if completion_response.choices[0].message.tool_calls == None and (agent.tool_choice == "required" or agent.tool_choice == "auto"):
+
+                    last_content = messages[-1]["content"]
+                    tools_description = convert_tools_to_description(tools)
+                    messages[-1]["content"] = last_content + "\n[IMPORTANT] You MUST use the tools provided to complete the task.\n" + SYSTEM_PROMPT_SUFFIX_TEMPLATE.format(description=tools_description)
+                    create_params = {
+                        "model": create_model,
+                        "messages": messages,
+                        "stream": stream,
+                        "base_url": base_url,
+                        "temperature": 0.6,
+                        "top_p": 0.95,
+                        "top_k": 40,
+                        "min_p": 0,
+                        # "max_tokens": 32768  # 设置最大输出长度
+                    }
+                    print(create_params)
+                    completion_response = completion(**create_params)
+
+                    last_message = [{"role": "assistant", "content": completion_response.choices[0].message.content}]
+                    converted_message = convert_non_fncall_messages_to_fncall_messages(last_message, tools)
+                    if "tool_calls" in converted_message[0]:
+                        completion_response.choices[0].message.tool_calls = [ChatCompletionMessageToolCall(**tool_call) for tool_call in converted_message[0]["tool_calls"]]
+            else: 
+                # create_model = model_override or agent.model
+                assert agent.tool_choice == "required", f"Non-function calling mode MUST use tool_choice = 'required' rather than {agent.tool_choice}"
+                last_content = messages[-1]["content"]
+                tools_description = convert_tools_to_description(tools)
+                messages[-1]["content"] = last_content + "\n[IMPORTANT] You MUST use the tools provided to complete the task.\n" + SYSTEM_PROMPT_SUFFIX_TEMPLATE.format(description=tools_description)
+                NO_SENDER_MODE = False
+                for not_sender_model in NOT_SUPPORT_SENDER:
+                    if not_sender_model in create_model:
+                        NO_SENDER_MODE = True
+                        break
+
+                if NO_SENDER_MODE:
+                    for message in messages:
+                        if 'sender' in message:
+                            del message['sender']
+                if NON_FN_CALL:
+                    messages = convert_fn_messages_to_non_fn_messages(messages)
+                if ADD_USER and messages[-1]["role"] != "user":
+                    # messages.append({"role": "user", "content": "Please think twice and take the next action according to your previous actions and observations."})
+                    messages = interleave_user_into_messages(messages)
+                create_params = {
+                    "model": create_model,
+                    "messages": messages,
+                    "stream": stream,
+                    "base_url": base_url,
+                    "temperature": 0.6,
+                    "top_p": 0.95,
+                    "top_k": 40,
+                    "min_p": 0,
+                }
+                completion_response = completion(**create_params)
+
+                if stream == False:
+                    last_message = [{"role": "assistant", "content": completion_response.choices[0].message.content}]
+                    converted_message = convert_non_fncall_messages_to_fncall_messages(last_message, tools)
+                    if "tool_calls" in converted_message[0]:
+                        converted_tool_calls = [ChatCompletionMessageToolCall(**tool_call) for tool_call in converted_message[0]["tool_calls"]]
+                    else: 
+                        converted_tool_calls = None
+                    completion_response.choices[0].message = litellmMessage(content = converted_message[0]["content"], role = "assistant", tool_calls = converted_tool_calls)
+                
+                else:
+                    # Collect the complete response content from the stream
+                    full_content = ""
+                    full_reasoning_content = ""
+
+                    for chunk in completion_response:
+                        if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content is not None:
+                            full_content += chunk.choices[0].delta.content
+                        
+                        # Also collect reasoning_content if available
+                        if hasattr(chunk.choices[0].delta, 'reasoning_content') and chunk.choices[0].delta.reasoning_content is not None:
+                            full_reasoning_content += chunk.choices[0].delta.reasoning_content
+
+                    # Combine reasoning content and regular content if both exist
+                    combined_content = full_content
+                    if full_reasoning_content:
+                        combined_content = full_reasoning_content + "\n\n=== Final Answer ===\n" + full_content
+
+                    last_message = [{"role": "assistant", "content": combined_content}]
+                    converted_message = convert_non_fncall_messages_to_fncall_messages(last_message, tools)
+                    if "tool_calls" in converted_message[0]:
+                        converted_tool_calls = [ChatCompletionMessageToolCall(**tool_call) for tool_call in converted_message[0]["tool_calls"]]
+                    else: 
+                        converted_tool_calls = None
+
+                    # Create a response-like object with the collected content and tool calls
+                    # Instead of importing CompletionResponse, create a compatible object structure
+                    # from litellm.utils import Message as litellmMessage
+
+                    # Create a custom response structure similar to what litellm would return
+                    completion_response = type('CompletionResponse', (), {
+                        'id': 'stream-response',
+                        'choices': [
+                            type('Choice', (), {
+                                'message': litellmMessage(
+                                    content=combined_content, 
+                                    role="assistant", 
+                                    tool_calls=converted_tool_calls
+                                ),
+                                'index': 0,
+                                'finish_reason': None
+                            })()  # Instantiate the dynamically created class
+                        ],
+                        'model': create_model
+                    })
+        else:
             create_params = {
                 "model": create_model,
                 "messages": messages,
                 "tools": tools or None,
                 "tool_choice": agent.tool_choice,
                 "stream": stream,
-                "base_url": API_BASE_URL,
+                "base_url": base_url,
                 "temperature": 0.6,
                 "top_p": 0.95,
                 "top_k": 40,
@@ -186,83 +346,10 @@ class MetaChain:
                         del message['sender']
                 create_params["messages"] = messages
 
-            if "QwQ-32B" in create_model:
-                messages = create_params["messages"]
-                for message in messages:
-                    # Make sure tool_calls is a list if it exists, or remove it entirely
-                    if 'tool_calls' in message and message['tool_calls'] is None:
-                        del message['tool_calls']
-                    elif 'tool_calls' in message and not isinstance(message['tool_calls'], list):
-                        message['tool_calls'] = list(message['tool_calls'].values()) if message['tool_calls'] else []
-                create_params["messages"] = messages
-
-            if tools and create_params['model'].startswith("gpt"):
-                create_params["parallel_tool_calls"] = agent.parallel_tool_calls
             print(create_params)
             completion_response = completion(**create_params)
 
-            if completion_response.choices[0].message.tool_calls == None and (agent.tool_choice == "required" or agent.tool_choice == "auto"):
-
-                last_content = messages[-1]["content"]
-                tools_description = convert_tools_to_description(tools)
-                messages[-1]["content"] = last_content + "\n[IMPORTANT] You MUST use the tools provided to complete the task.\n" + SYSTEM_PROMPT_SUFFIX_TEMPLATE.format(description=tools_description)
-                create_params = {
-                    "model": create_model,
-                    "messages": messages,
-                    "stream": stream,
-                    "base_url": API_BASE_URL,
-                    "temperature": 0.6,
-                    "top_p": 0.95,
-                    "top_k": 40,
-                    "min_p": 0,
-                    # "max_tokens": 32768  # 设置最大输出长度
-                }
-                print(create_params)
-                completion_response = completion(**create_params)
-
-                last_message = [{"role": "assistant", "content": completion_response.choices[0].message.content}]
-                converted_message = convert_non_fncall_messages_to_fncall_messages(last_message, tools)
-                if "tool_calls" in converted_message[0]:
-                    completion_response.choices[0].message.tool_calls = [ChatCompletionMessageToolCall(**tool_call) for tool_call in converted_message[0]["tool_calls"]]
-        else: 
-            # create_model = model_override or agent.model
-            assert agent.tool_choice == "required", f"Non-function calling mode MUST use tool_choice = 'required' rather than {agent.tool_choice}"
-            last_content = messages[-1]["content"]
-            tools_description = convert_tools_to_description(tools)
-            messages[-1]["content"] = last_content + "\n[IMPORTANT] You MUST use the tools provided to complete the task.\n" + SYSTEM_PROMPT_SUFFIX_TEMPLATE.format(description=tools_description)
-            NO_SENDER_MODE = False
-            for not_sender_model in NOT_SUPPORT_SENDER:
-                if not_sender_model in create_model:
-                    NO_SENDER_MODE = True
-                    break
-
-            if NO_SENDER_MODE:
-                for message in messages:
-                    if 'sender' in message:
-                        del message['sender']
-            if NON_FN_CALL:
-                messages = convert_fn_messages_to_non_fn_messages(messages)
-            if ADD_USER and messages[-1]["role"] != "user":
-                # messages.append({"role": "user", "content": "Please think twice and take the next action according to your previous actions and observations."})
-                messages = interleave_user_into_messages(messages)
-            create_params = {
-                "model": create_model,
-                "messages": messages,
-                "stream": stream,
-                "base_url": API_BASE_URL,
-            }
-            completion_response = completion(**create_params)
-
-            if stream == False:
-                last_message = [{"role": "assistant", "content": completion_response.choices[0].message.content}]
-                converted_message = convert_non_fncall_messages_to_fncall_messages(last_message, tools)
-                if "tool_calls" in converted_message[0]:
-                    converted_tool_calls = [ChatCompletionMessageToolCall(**tool_call) for tool_call in converted_message[0]["tool_calls"]]
-                else: 
-                    converted_tool_calls = None
-                completion_response.choices[0].message = litellmMessage(content = converted_message[0]["content"], role = "assistant", tool_calls = converted_tool_calls)
-            
-            else:
+            if stream:
                 # Collect the complete response content from the stream
                 full_content = ""
                 full_reasoning_content = ""
@@ -280,12 +367,6 @@ class MetaChain:
                 if full_reasoning_content:
                     combined_content = full_reasoning_content + "\n\n=== Final Answer ===\n" + full_content
 
-                last_message = [{"role": "assistant", "content": combined_content}]
-                converted_message = convert_non_fncall_messages_to_fncall_messages(last_message, tools)
-                if "tool_calls" in converted_message[0]:
-                    converted_tool_calls = [ChatCompletionMessageToolCall(**tool_call) for tool_call in converted_message[0]["tool_calls"]]
-                else: 
-                    converted_tool_calls = None
 
                 # Create a response-like object with the collected content and tool calls
                 # Instead of importing CompletionResponse, create a compatible object structure
@@ -298,8 +379,7 @@ class MetaChain:
                         type('Choice', (), {
                             'message': litellmMessage(
                                 content=combined_content, 
-                                role="assistant", 
-                                tool_calls=converted_tool_calls
+                                role="assistant"
                             ),
                             'index': 0,
                             'finish_reason': None
@@ -649,15 +729,19 @@ class MetaChain:
         messages = [{"role": "system", "content": instructions}] + history
 
         create_model = model_override or agent.model
-        if FN_CALL:
-        # if 'qwq' not in create_model:
+
+        if 'qwen' in create_model.lower():
+            base_url = QWEN_BASE_URL
+        elif 'qwq' in create_model.lower():
+            base_url = QWQ_BASE_URL
+        else:
+            base_url = API_BASE_URL
+
+        if FN_CALL and 'qwq' not in create_model.lower():
             # assert litellm.supports_function_calling(model = create_model) == True, f"Model {create_model} does not support function calling, please set `FN_CALL=False` to use non-function calling mode"
             if agent.tool_choice:
                 if  agent.tool_choice == "required" and "QwQ" in create_model:
                     agent.tool_choice = 'auto'
-            # else:
-            #     if "QwQ" in create_model:
-            #         agent.tool_choice = 'none'
 
             create_params = {
                 "model": create_model,
@@ -665,7 +749,7 @@ class MetaChain:
                 "tools": tools or None,
                 "tool_choice": agent.tool_choice,
                 "stream": stream,
-                "base_url": API_BASE_URL,
+                "base_url": base_url,
                 "temperature": 0.6,
                 "top_p": 0.95,
                 "top_k": 40,
@@ -708,7 +792,7 @@ class MetaChain:
                     "model": create_model,
                     "messages": messages,
                     "stream": stream,
-                    "base_url": API_BASE_URL,
+                    "base_url": base_url,
                     "temperature": 0.6,
                     "top_p": 0.95,
                     "top_k": 40,
@@ -740,7 +824,11 @@ class MetaChain:
                 "model": create_model,
                 "messages": messages,
                 "stream": stream,
-                "base_url": API_BASE_URL,
+                "base_url": base_url,
+                "temperature": 0.6,
+                "top_p": 0.95,
+                "top_k": 40,
+                "min_p": 0,
             }
             completion_response = await acompletion(**create_params)
 
