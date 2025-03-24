@@ -1,25 +1,29 @@
 <workflow>
-    <name>math_problem_solving_workflow</name>
+    <name>task_comprehensive_planning_with_goto</name>
     <system_input>
-        <key>math_problem</key>
-        <description>用户提供的数学问题描述。</description>
+        <key>task_description</key>
+        <description>需要规划的任务描述信息</description>
     </system_input>
     <system_output>
-        <key>final_answer</key>
-        <description>最终确定的数学问题答案。</description>
+        <key>final_plan</key>
+        <description>经过多次优化后的最终任务规划方案</description>
     </system_output>
     <agents>
         <agent category="existing">
-            <name>Math Solver Agent</name>
-            <description>此代理用于解决数学问题，提供详细的解决方案和步骤。</description>
+            <name>任务解析智能体</name>
+            <description>对任务进行详细解析并生成结构化输出的智能代理</description>
         </agent>
         <agent category="existing">
-            <name>Coding Agent</name>
-            <description>此代理用于编写代码来验证或辅助解决数学问题。</description>
+            <name>目标确定智能体</name>
+            <description>根据解析结果设定实际可行目标的智能代理</description>
         </agent>
         <agent category="existing">
-            <name>Vote Aggregator Agent</name>
-            <description>此代理用于聚合不同解法并根据多数投票选择最终答案。</description>
+            <name>分解任务智能体</name>
+            <description>将任务分解为多个子步骤和子目标的智能代理</description>
+        </agent>
+        <agent category="existing">
+            <name>评估预测智能体</name>
+            <description>评估任务分解结果并提出改进建议的智能代理</description>
         </agent>
     </agents>
     <events>
@@ -27,14 +31,14 @@
             <name>on_start</name>
             <inputs>
                 <input>
-                    <key>math_problem</key>
-                    <description>用户提供的数学问题描述。</description>
+                    <key>task_description</key>
+                    <description>需要规划的任务描述信息</description>
                 </input>
             </inputs>
             <outputs>
                 <output>
-                    <key>math_problem</key>
-                    <description>用户提供的数学问题描述。</description>
+                    <key>task_description</key>
+                    <description>需要规划的任务描述信息</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -42,20 +46,18 @@
             </outputs>
         </event>
         <event>
-            <name>solve_math_problem</name>
+            <name>parse_task</name>
             <inputs>
                 <input>
-                    <key>math_problem</key>
-                    <description>用户提供的数学问题描述。</description>
+                    <key>task_description</key>
+                    <description>需要规划的任务描述信息</description>
                 </input>
             </inputs>
-            <task>
-                使用 Math Solver Agent 提供多种解决方案。
-            </task>
+            <task>对任务描述进行详细解析</task>
             <outputs>
                 <output>
-                    <key>solutions</key>
-                    <description>由 Math Solver Agent 生成的多个解决方案。</description>
+                    <key>parsed_task</key>
+                    <description>解析后的任务结构化数据</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -65,63 +67,95 @@
                 <event>on_start</event>
             </listen>
             <agent>
-                <name>Math Solver Agent</name>
+                <name>任务解析智能体</name>
                 <model>openai/qwen-plus</model>
             </agent>
         </event>
         <event>
-            <name>verify_solutions_with_code</name>
+            <name>determine_goal</name>
             <inputs>
                 <input>
-                    <key>solutions</key>
-                    <description>由 Math Solver Agent 生成的多个解决方案。</description>
+                    <key>parsed_task</key>
+                    <description>解析后的任务结构化数据</description>
                 </input>
             </inputs>
-            <task>
-                使用 Coding Agent 编写代码以验证解决方案的有效性。
-            </task>
+            <task>根据解析结果设定实际可行目标</task>
             <outputs>
                 <output>
-                    <key>verified_solutions</key>
-                    <description>经过 Coding Agent 验证后的有效解决方案。</description>
+                    <key>task_goals</key>
+                    <description>设定的实际可行目标</description>
                     <action>
                         <type>RESULT</type>
                     </action>
                 </output>
             </outputs>
             <listen>
-                <event>solve_math_problem</event>
+                <event>parse_task</event>
             </listen>
             <agent>
-                <name>Coding Agent</name>
+                <name>目标确定智能体</name>
                 <model>openai/qwen-plus</model>
             </agent>
         </event>
         <event>
-            <name>aggregate_and_determine_final_answer</name>
+            <name>decompose_task</name>
             <inputs>
                 <input>
-                    <key>verified_solutions</key>
-                    <description>经过 Coding Agent 验证后的有效解决方案。</description>
+                    <key>task_goals</key>
+                    <description>设定的实际可行目标</description>
                 </input>
             </inputs>
-            <task>
-                使用 Vote Aggregator Agent 聚合所有解决方案并选择最终答案。
-            </task>
+            <task>将任务分解为多个子步骤和子目标</task>
             <outputs>
                 <output>
-                    <key>final_answer</key>
-                    <description>最终确定的数学问题答案。</description>
+                    <key>decomposed_steps</key>
+                    <description>任务分解后的子步骤和子目标</description>
                     <action>
                         <type>RESULT</type>
                     </action>
                 </output>
             </outputs>
             <listen>
-                <event>verify_solutions_with_code</event>
+                <event>determine_goal</event>
             </listen>
             <agent>
-                <name>Vote Aggregator Agent</name>
+                <name>分解任务智能体</name>
+                <model>openai/qwen-plus</model>
+            </agent>
+        </event>
+        <event>
+            <name>evaluate_plan</name>
+            <inputs>
+                <input>
+                    <key>decomposed_steps</key>
+                    <description>任务分解后的子步骤和子目标</description>
+                </input>
+            </inputs>
+            <task>评估任务分解结果并提出改进建议</task>
+            <outputs>
+                <output>
+                    <key>plan_approved</key>
+                    <description>如果评估通过，表示计划可以执行</description>
+                    <condition>如果评估结果达标</condition>
+                    <action>
+                        <type>RESULT</type>
+                    </action>
+                </output>
+                <output>
+                    <key>plan_needs_revision</key>
+                    <description>如果评估未通过，需要重新调整目标</description>
+                    <condition>如果评估结果未达标</condition>
+                    <action>
+                        <type>GOTO</type>
+                        <value>determine_goal</value>
+                    </action>
+                </output>
+            </outputs>
+            <listen>
+                <event>decompose_task</event>
+            </listen>
+            <agent>
+                <name>评估预测智能体</name>
                 <model>openai/qwen-plus</model>
             </agent>
         </event>

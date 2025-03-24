@@ -133,7 +133,7 @@ The last attempt failed with the following error: {content}, please try again to
 def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     print('\033[s\033[?25l', end='')  # Save cursor position and hide cursor
     logger = LoggerManager.get_logger()
-    workflow_generator = get_workflow_generator_agent("openai/qwq-plus")
+    workflow_generator = get_workflow_generator_agent("openai/qwq-32b")
     workflow_former = get_workflow_former_agent("openai/qwen-plus")
     workflow_creator_agent = get_workflow_creator_agent("openai/qwen-plus")
 

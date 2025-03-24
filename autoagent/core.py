@@ -364,8 +364,8 @@ class MetaChain:
 
                 # Combine reasoning content and regular content if both exist
                 combined_content = full_content
-                if full_reasoning_content:
-                    combined_content = full_reasoning_content + "\n\n=== Final Answer ===\n" + full_content
+                # if full_reasoning_content:
+                #     combined_content = full_reasoning_content + "\n\n=== Final Answer ===\n" + full_content
 
 
                 # Create a response-like object with the collected content and tool calls
@@ -378,7 +378,8 @@ class MetaChain:
                     'choices': [
                         type('Choice', (), {
                             'message': litellmMessage(
-                                content=combined_content, 
+                                content=full_content, 
+                                reasoning_content=full_reasoning_content,
                                 role="assistant"
                             ),
                             'index': 0,

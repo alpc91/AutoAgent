@@ -44,7 +44,7 @@ def get_workflow_generator_agent(model: str) -> str:
 
 5. <agents> - 系统内所有智能代理的定义
    - 每个 <agent> 必须是现有的（通过 category 属性指定）
-   - <name>: 智能代理的标识符，可以是一个英文单词，使用 '_' 作为分隔符。
+   - <name>: 智能代理的标识符，可以是中文，也可以是一个英文单词(使用 '_' 作为分隔符)，具体根据智能代理的实际名称填写。
    - <description>: 智能代理的详细能力描述
 
 """ + \
@@ -103,15 +103,15 @@ r"""
             <description>此代理用于在网上搜索角度2的主题和素材。</description>
         </agent>
         <agent category="existing">
-            <name>Outline Agent</name>
+            <name>大纲智能体</name>
             <description>此代理用于综合两个角度的内容为用户撰写大纲。</description>
         </agent>
         <agent category="existing">
-            <name>Evaluator Agent</name>
+            <name>评估智能体</name>
             <description>此代理用于评估用户主题的大纲。</description>
         </agent>
         <agent category="existing">
-            <name>Article Writer Agent</name>
+            <name>撰写智能体</name>
             <description>此代理用于撰写用户主题的文章。</description>
         </agent>
     </agents>
