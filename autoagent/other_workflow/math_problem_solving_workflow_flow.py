@@ -33,7 +33,7 @@ async def math_solve(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = 'Solve the math problem using analytical and systematic approaches.'
     outputs = [{'key': 'math_solution', 'description': 'The solution provided by the Math Solver Agent.', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_math_solver_agent('openai/qwen-plus')
+    agent = get_math_solver_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []
@@ -75,7 +75,7 @@ async def code_solve(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = 'Write and execute code to solve the math problem.'
     outputs = [{'key': 'code_solution', 'description': 'The solution provided by the Coding Agent.', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_coding_agent('openai/qwen-plus')
+    agent = get_coding_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []
@@ -117,7 +117,7 @@ async def aggregate_solutions(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = 'Aggregate the solutions from different agents and determine the final answer through majority voting.'
     outputs = [{'key': 'solution', 'description': 'The final aggregated solution.', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_vote_aggregator_agent('openai/qwen-plus')
+    agent = get_vote_aggregator_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []

@@ -29,9 +29,9 @@ async def solve_with_qwen_plus(event: EventInput, global_ctx):
         input_dict[inp["key"]] = global_ctx.get(inp["key"], None)
     
     messages = global_ctx.get('messages', [])
-    task = 'Solve the math problem using the `openai/qwen-plus` model.'
-    outputs = [{'key': 'solution_qwen_plus', 'description': 'The solution provided by the `openai/qwen-plus` model.', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_math_solver_agent('openai/qwen-plus')
+    task = 'Solve the math problem using the `hosted_vllm/Qwen/QwQ-32B-AWQ` model.'
+    outputs = [{'key': 'solution_qwen_plus', 'description': 'The solution provided by the `hosted_vllm/Qwen/QwQ-32B-AWQ` model.', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
+    agent = get_math_solver_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []
@@ -107,7 +107,7 @@ async def solve_with_qwen_vl_plus(event: EventInput, global_ctx):
     raise Exception("No valid answer found")
 @default_drive.listen_group([solve_with_qwen_plus, solve_with_qwen_vl_plus])
 async def aggregate_results(event: EventInput, global_ctx):
-    inputs = [{'key': 'solution_qwen_plus', 'description': 'The solution provided by the `openai/qwen-plus` model.'}, {'key': 'solution_qwen_vl_plus', 'description': 'The solution provided by the `openai/qwen-vl-plus` model.'}]
+    inputs = [{'key': 'solution_qwen_plus', 'description': 'The solution provided by the `hosted_vllm/Qwen/QwQ-32B-AWQ` model.'}, {'key': 'solution_qwen_vl_plus', 'description': 'The solution provided by the `openai/qwen-vl-plus` model.'}]
     input_dict = dict()
     for inp in inputs: 
         input_dict[inp["key"]] = global_ctx.get(inp["key"], None)
@@ -115,7 +115,7 @@ async def aggregate_results(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = 'Aggregate the results from the Math Solver Agents and determine the final result using majority voting.'
     outputs = [{'key': 'final_result', 'description': 'The final result of the math problem after majority voting.', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_vote_aggregator_agent('openai/qwen-plus')
+    agent = get_vote_aggregator_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []

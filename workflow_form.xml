@@ -70,7 +70,7 @@
             </listen>
             <agent>
                 <name>任务解析代理</name>
-                <model>openai/qwen-plus</model>
+                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
         <event>
@@ -98,7 +98,7 @@
             </listen>
             <agent>
                 <name>确定目标代理</name>
-                <model>openai/qwen-plus</model>
+                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
         <event>
@@ -126,7 +126,7 @@
             </listen>
             <agent>
                 <name>任务分解代理</name>
-               <model>openai/qwen-plus</model>
+               <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
         <event>
@@ -168,7 +168,7 @@
             </listen>
             <agent>
                 <name>评估预测代理</name>
-                <model>openai/qwen-plus</model>
+                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
     </events>

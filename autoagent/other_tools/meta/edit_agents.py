@@ -84,7 +84,7 @@ def delete_agent(agent_name: str, context_variables):
 
 @register_tool("run_agent")
 @process_terminal_response
-def run_agent(agent_name: str, query: str, ctx_vars: dict, context_variables, model: str = "openai/qwen-plus"): 
+def run_agent(agent_name: str, query: str, ctx_vars: dict, context_variables, model: str = "hosted_vllm/Qwen/QwQ-32B-AWQ"): 
     """
     Run a plugin agent.
     Args:

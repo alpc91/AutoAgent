@@ -6,7 +6,7 @@ export DOCKER_WORKPLACE_NAME=workplace
 export EVAL_MODE=True
 export DEBUG=True
 export BASE_IMAGES=tjbtech1/gaia-bookworm:v2
-export COMPLETION_MODEL=openai/qwen-plus   
+export COMPLETION_MODEL=hosted_vllm/Qwen/QwQ-32B-AWQ   
 export API_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 # claude-3-5-sonnet-20241022
 

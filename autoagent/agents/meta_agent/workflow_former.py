@@ -122,7 +122,7 @@ import json
 #         </outputs>
 #         ```
 #    - listen: Which events trigger this one.
-#    - agent: Which agent handles this event. Every agent has the name of the agent, and the exact model of the agent (like `openai/qwen-plus` or others)
+#    - agent: Which agent handles this event. Every agent has the name of the agent, and the exact model of the agent (like `hosted_vllm/Qwen/QwQ-32B-AWQ` or others)
 
 
 # IMPORTANT RULES:
@@ -428,7 +428,7 @@ import json
 #             </listen>
 #             <agent>
 #                 <name>Web Surfer Agent</name>
-#                 <model>openai/qwen-plus</model>
+#                 <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
 #             </agent>
 #         </event>
 #         <event>
@@ -456,7 +456,7 @@ import json
 #             </listen>
 #             <agent>
 #                 <name>Outline Agent</name>
-#                 <model>openai/qwen-plus</model>
+#                 <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
 #             </agent>
 #         </event>
 #         <event>
@@ -498,7 +498,7 @@ import json
 #             </listen>
 #             <agent>
 #                 <name>Evaluator Agent</name>
-#                 <model>openai/qwen-plus</model>
+#                 <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
 #             </agent>
 #         </event>
 #         <event>
@@ -526,7 +526,7 @@ import json
 #             </listen>
 #             <agent>
 #                 <name>Article Writer Agent</name>
-#                 <model>openai/qwen-plus</model>
+#                 <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
 #             </agent>
 #         </event>
 #     </events>
@@ -666,7 +666,7 @@ r"""
         </outputs>
         ```
    - <listen>: 触发该事件的事件。
-   - <agent>: 处理该事件的智能代理。每个代理都有代理的名称和代理的确切模型（例如 `openai/qwen-plus` 或其他）
+   - <agent>: 处理该事件的智能代理。每个代理都有代理的名称和代理的确切模型（例如 `hosted_vllm/Qwen/QwQ-32B-AWQ` 或其他）
 
 
 重要规则：
@@ -955,7 +955,7 @@ r"""
             </listen>
             <agent>
                 <name>Web Surfer Agent</name>
-                <model>openai/qwen-plus</model>
+                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
         <event>
@@ -983,7 +983,7 @@ r"""
             </listen>
             <agent>
                 <name>Outline Agent</name>
-                <model>openai/qwen-plus</model>
+                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
         <event>
@@ -1025,7 +1025,7 @@ r"""
             </listen>
             <agent>
                 <name>Evaluator Agent</name>
-                <model>openai/qwen-plus</model>
+                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
         <event>
@@ -1053,7 +1053,7 @@ r"""
             </listen>
             <agent>
                 <name>Article Writer Agent</name>
-                <model>openai/qwen-plus</model>
+                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
     </events>
@@ -1076,13 +1076,13 @@ r"""
 
 if __name__ == "__main__":
     from autoagent import MetaChain
-    agent = get_workflow_former_agent("openai/qwen-plus")
+    agent = get_workflow_former_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
     client = MetaChain()
 #     task_yaml = """\
 # I want to create a workflow that can help me to solving the math problem.
 
 # The workflow should:
-# 2. Parallelize solving the math problem with the same `Math Solver Agent` using different language models (`gpt-4o-2024-08-06`, `openai/qwen-plus`, `deepseek/deepseek-chat`)
+# 2. Parallelize solving the math problem with the same `Math Solver Agent` using different language models (`gpt-4o-2024-08-06`, `hosted_vllm/Qwen/QwQ-32B-AWQ`, `deepseek/deepseek-chat`)
 # 3. Aggregate the results from the `Math Solver Agent` and return the final result using majority voting.
 
 # Please create the form of this workflow in the XML format.

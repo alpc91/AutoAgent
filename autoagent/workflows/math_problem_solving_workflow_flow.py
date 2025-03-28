@@ -33,7 +33,7 @@ async def solve_math_problem(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = '使用 Math Solver Agent 提供多种解决方案。'
     outputs = [{'key': 'solutions', 'description': '由 Math Solver Agent 生成的多个解决方案。', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_math_solver_agent('openai/qwen-plus')
+    agent = get_math_solver_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []
@@ -75,7 +75,7 @@ async def verify_solutions_with_code(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = '使用 Coding Agent 编写代码以验证解决方案的有效性。'
     outputs = [{'key': 'verified_solutions', 'description': '经过 Coding Agent 验证后的有效解决方案。', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_coding_agent('openai/qwen-plus')
+    agent = get_coding_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []
@@ -117,7 +117,7 @@ async def aggregate_and_determine_final_answer(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = '使用 Vote Aggregator Agent 聚合所有解决方案并选择最终答案。'
     outputs = [{'key': 'final_answer', 'description': '最终确定的数学问题答案。', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_vote_aggregator_agent('openai/qwen-plus')
+    agent = get_vote_aggregator_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []

@@ -49,7 +49,7 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--model', default='openai/qwen-plus', help='the name of the model')
+@click.option('--model', default='hosted_vllm/Qwen/QwQ-32B-AWQ', help='the name of the model')
 @click.option('--agent_func', default='get_agentic_rag_orchestrator', help='the function to get the agent')
 @click.option('--query', default='先初始化RAG，然后帮我查一下MCTS-AHD这篇论文的主要贡献', help='the user query to the agent')
 @click.argument('context_variables', nargs=-1)

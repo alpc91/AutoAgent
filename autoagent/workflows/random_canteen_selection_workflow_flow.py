@@ -31,7 +31,7 @@ async def generate_scores_canteen_a(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = '为第一个食堂生成一个随机评分。'
     outputs = [{'key': 'score_canteen_a', 'description': 'A食堂的随机评分（0-10分）。', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_coding_agent('openai/qwen-plus')
+    agent = get_coding_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []
@@ -73,7 +73,7 @@ async def generate_scores_canteen_b(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = '为第二个食堂生成一个随机评分。'
     outputs = [{'key': 'score_canteen_b', 'description': 'B食堂的随机评分（0-10分）。', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_coding_agent('openai/qwen-plus')
+    agent = get_coding_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []
@@ -115,7 +115,7 @@ async def generate_scores_canteen_c(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = '为第三个食堂生成一个随机评分。'
     outputs = [{'key': 'score_canteen_c', 'description': 'C食堂的随机评分（0-10分）。', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_coding_agent('openai/qwen-plus')
+    agent = get_coding_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []
@@ -157,7 +157,7 @@ async def aggregate_scores(event: EventInput, global_ctx):
     messages = global_ctx.get('messages', [])
     task = '聚合所有食堂的评分并选出得分最高的食堂。'
     outputs = [{'key': 'selected_canteen', 'description': '最终被选中的食堂名称。', 'condition': None, 'action': {'type': 'RESULT', 'value': None}}]
-    agent = get_vote_aggregator_agent('openai/qwen-plus')
+    agent = get_vote_aggregator_agent('hosted_vllm/Qwen/QwQ-32B-AWQ')
     
 
     input_str = []
