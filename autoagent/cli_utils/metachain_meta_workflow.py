@@ -134,8 +134,10 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     print('\033[s\033[?25l', end='')  # Save cursor position and hide cursor
     logger = LoggerManager.get_logger()
     workflow_generator = get_workflow_generator_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
-    workflow_former = get_workflow_former_agent("hosted_vllm/Qwen/Qwen-32B-Instruct-AWQ")
-    workflow_creator_agent = get_workflow_creator_agent("hosted_vllm/Qwen/Qwen-32B-Instruct-AWQ")
+    workflow_former = get_workflow_former_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
+    workflow_creator_agent = get_workflow_creator_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
+    # workflow_former = get_workflow_former_agent("hosted_vllm/Qwen/Qwen-32B-Instruct-AWQ")
+    # workflow_creator_agent = get_workflow_creator_agent("hosted_vllm/Qwen/Qwen-32B-Instruct-AWQ")
 
     agent = workflow_generator
     agents = {workflow_generator.name.replace(' ', '_'): workflow_generator, workflow_former.name.replace(' ', '_'): workflow_former, workflow_creator_agent.name.replace(' ', '_'): workflow_creator_agent}
@@ -192,6 +194,8 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                 workflow, messages = workflow_generating(workflow_generator, client, messages, context_variables, requirements, debug)
                 # workflow = "这是一个节点实例的语言描述"
                 agent = workflow_generator
+                if 'reasoning_content' in messages[-1] or messages[-1].reasoning_content:
+                    console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 思维链:\n[/bold green][bold blue]{messages[-1].reasoning_content}[/bold blue]")
                 console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 生成的MCT节点实例语言描述:\n[/bold green][bold blue]{workflow}[/bold blue]")
                 last_message = '如果符合你的要求，请按"Enter"回车，将为你进一步生成格式化xml文件以进行前端展示；否则，请提出具体修改建议。'
                 # console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has generator workflow successfully with the following details:\n[/bold green][bold blue]{workflow}[/bold blue]")
