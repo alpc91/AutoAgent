@@ -148,7 +148,7 @@ class MetaChain:
 
         create_model = model_override or agent.model
 
-        if 'qwen' in create_model.lower():
+        if 'qwen-' in create_model.lower():
             base_url = QWEN_BASE_URL
         elif 'qwq' in create_model.lower():
             base_url = QWQ_BASE_URL
@@ -162,11 +162,12 @@ class MetaChain:
             tools = adapt_tools_for_gemini(tools)
 
         if agent.tool_choice:
-            if  agent.tool_choice == "required" and "QwQ" in create_model:
-                agent.tool_choice = 'auto'
-            if FN_CALL and 'qwq' not in create_model.lower():
+            if FN_CALL:# and 'qwq' not in create_model.lower():
                 # create_model = model_override or agent.model
                 # assert litellm.supports_function_calling(model = create_model) == True, f"Model {create_model} does not support function calling, please set `FN_CALL=False` to use non-function calling mode"
+
+                if  agent.tool_choice == "required" and "Qw" in create_model:
+                    agent.tool_choice = 'auto'
 
                 create_params = {
                     "model": create_model,
@@ -180,6 +181,7 @@ class MetaChain:
                     "top_k": 40,
                     "min_p": 0,
                     # "max_tokens": 32768  # 设置最大输出长度
+                    # "thinking": {"type": "enabled", "budget_tokens": 32768},
                 }
                 NO_SENDER_MODE = False
                 for not_sender_model in NOT_SUPPORT_SENDER:
@@ -194,20 +196,54 @@ class MetaChain:
                             del message['sender']
                     create_params["messages"] = messages
 
-                if "QwQ-32B" in create_model:
+                if "Qw" in create_model:
                     messages = create_params["messages"]
                     for message in messages:
                         # Make sure tool_calls is a list if it exists, or remove it entirely
                         if 'tool_calls' in message and message['tool_calls'] is None:
                             del message['tool_calls']
-                        elif 'tool_calls' in message and not isinstance(message['tool_calls'], list):
-                            message['tool_calls'] = list(message['tool_calls'].values()) if message['tool_calls'] else []
+                        # elif 'tool_calls' in message and not isinstance(message['tool_calls'], list):
+                        #     message['tool_calls'] = list(message['tool_calls'].values()) if message['tool_calls'] else []
                     create_params["messages"] = messages
 
                 if tools and create_params['model'].startswith("gpt"):
                     create_params["parallel_tool_calls"] = agent.parallel_tool_calls
-                print(create_params)
+                # print(create_params)
                 completion_response = completion(**create_params)
+
+                if stream:
+                    # Collect the complete response content from the stream
+                    full_content = ""
+                    full_reasoning_content = ""
+
+                    for chunk in completion_response:
+                        if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content is not None:
+                            full_content += chunk.choices[0].delta.content
+                        
+                        # Also collect reasoning_content if available
+                        if hasattr(chunk.choices[0].delta, 'reasoning_content') and chunk.choices[0].delta.reasoning_content is not None:
+                            full_reasoning_content += chunk.choices[0].delta.reasoning_content
+
+                        if hasattr(chunk.choices[0].delta, 'tool_calls') and chunk.choices[0].delta.tool_calls is not None:
+                            full_tool_calls = chunk.choices[0].delta.tool_calls
+
+                    # Create a custom response structure similar to what litellm would return
+                    completion_response = type('CompletionResponse', (), {
+                        'id': 'stream-response',
+                        'choices': [
+                            type('Choice', (), {
+                                'message': litellmMessage(
+                                    content=full_content, 
+                                    reasoning_content=full_reasoning_content,
+                                    tool_calls=full_tool_calls,
+                                    role="assistant"
+                                ),
+                                'index': 0,
+                                'finish_reason': None
+                            })()  # Instantiate the dynamically created class
+                        ],
+                        'model': create_model
+                    })
 
                 if completion_response.choices[0].message.tool_calls == None and (agent.tool_choice == "required" or agent.tool_choice == "auto"):
 
@@ -225,7 +261,7 @@ class MetaChain:
                         "min_p": 0,
                         # "max_tokens": 32768  # 设置最大输出长度
                     }
-                    print(create_params)
+                    # print(create_params)
                     completion_response = completion(**create_params)
 
                     last_message = [{"role": "assistant", "content": completion_response.choices[0].message.content}]
@@ -331,6 +367,7 @@ class MetaChain:
                 "top_p": 0.95,
                 "top_k": 40,
                 "min_p": 0,
+                # "thinking": {"type": "enabled", "budget_tokens": 32768},
                 # "max_tokens": 32768  # 设置最大输出长度
             }
             NO_SENDER_MODE = False
@@ -346,7 +383,17 @@ class MetaChain:
                         del message['sender']
                 create_params["messages"] = messages
 
-            print(create_params)
+            if "Qw" in create_model:
+                messages = create_params["messages"]
+                for message in messages:
+                    # Make sure tool_calls is a list if it exists, or remove it entirely
+                    if 'tool_calls' in message and message['tool_calls'] is None:
+                        del message['tool_calls']
+                    # elif 'tool_calls' in message and not isinstance(message['tool_calls'], list):
+                    #     message['tool_calls'] = list(message['tool_calls'].values()) if message['tool_calls'] else []
+                create_params["messages"] = messages
+
+            # print(create_params)
             completion_response = completion(**create_params)
 
             if stream:
@@ -363,7 +410,7 @@ class MetaChain:
                         full_reasoning_content += chunk.choices[0].delta.reasoning_content
 
                 # Combine reasoning content and regular content if both exist
-                combined_content = full_content
+                # combined_content = full_content
                 # if full_reasoning_content:
                 #     combined_content = full_reasoning_content + "\n\n=== Final Answer ===\n" + full_content
 
@@ -624,7 +671,7 @@ class MetaChain:
 
             message: Message = completion.choices[0].message
             # Check if content contains the </think> pattern and split it
-            if hasattr(message, 'content') and "</think>" in message.content:
+            if hasattr(message, 'content') and message.content and "</think>" in message.content:
                 full_content = message.content
                 think_part, content_part = full_content.split("</think>", 1)
                 # Add the thinking part and update the content
@@ -731,17 +778,17 @@ class MetaChain:
 
         create_model = model_override or agent.model
 
-        if 'qwen' in create_model.lower():
+        if 'qwen-' in create_model.lower():
             base_url = QWEN_BASE_URL
         elif 'qwq' in create_model.lower():
             base_url = QWQ_BASE_URL
         else:
             base_url = API_BASE_URL
 
-        if FN_CALL and 'qwq' not in create_model.lower():
+        if FN_CALL:# and 'qwq' not in create_model.lower():
             # assert litellm.supports_function_calling(model = create_model) == True, f"Model {create_model} does not support function calling, please set `FN_CALL=False` to use non-function calling mode"
             if agent.tool_choice:
-                if  agent.tool_choice == "required" and "QwQ" in create_model:
+                if  agent.tool_choice == "required" and "Qw" in create_model:
                     agent.tool_choice = 'auto'
 
             create_params = {
@@ -776,8 +823,8 @@ class MetaChain:
                     # Make sure tool_calls is a list if it exists, or remove it entirely
                     if 'tool_calls' in message and message['tool_calls'] is None:
                         del message['tool_calls']
-                    elif 'tool_calls' in message and not isinstance(message['tool_calls'], list):
-                        message['tool_calls'] = list(message['tool_calls'].values()) if message['tool_calls'] else []
+                    # elif 'tool_calls' in message and not isinstance(message['tool_calls'], list):
+                    #     message['tool_calls'] = list(message['tool_calls'].values()) if message['tool_calls'] else []
                 create_params["messages"] = messages
 
             if tools and create_params['model'].startswith("gpt"):
@@ -927,7 +974,7 @@ class MetaChain:
 
             message: Message = completion.choices[0].message
             # Check if content contains the </think> pattern and split it
-            if hasattr(message, 'content') and "</think>" in message.content:
+            if hasattr(message, 'content') and message.content and "</think>" in message.content:
                 full_content = message.content
                 think_part, content_part = full_content.split("</think>", 1)
                 # Add the thinking part and update the content
