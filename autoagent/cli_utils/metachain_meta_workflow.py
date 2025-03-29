@@ -18,9 +18,13 @@ Directly output the form in the XML format without ANY other text.
 """})
     response = client.run(workflow_generator, messages, context_variables, debug=debug)
     workflow = response.messages[-1]["content"]
+    if "reasoning_content" in response.messages[-1] or (hasattr(response.messages[-1], 'reasoning_content') and response.messages[-1].reasoning_content):
+        reasoning_content = response.messages[-1]["reasoning_content"]
+    else:
+        reasoning_content = "No reasoning content available"
     messages.extend(response.messages)
 
-    return workflow, messages
+    return reasoning_content, workflow, messages
 
 def workflow_profiling(workflow_former, client, messages, context_variables, advice, debug):
     messages.append({"role": "user", "content": advice + """
@@ -133,9 +137,12 @@ The last attempt failed with the following error: {content}, please try again to
 def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     print('\033[s\033[?25l', end='')  # Save cursor position and hide cursor
     logger = LoggerManager.get_logger()
-    workflow_generator = get_workflow_generator_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
-    workflow_former = get_workflow_former_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
-    workflow_creator_agent = get_workflow_creator_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
+    workflow_generator = get_workflow_generator_agent("openai/qwen-plus")
+    workflow_former = get_workflow_former_agent("openai/qwen-plus")
+    workflow_creator_agent = get_workflow_creator_agent("openai/qwen-plus")
+    # workflow_generator = get_workflow_generator_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
+    # workflow_former = get_workflow_former_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
+    # workflow_creator_agent = get_workflow_creator_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
     # workflow_former = get_workflow_former_agent("hosted_vllm/Qwen/Qwen-32B-Instruct-AWQ")
     # workflow_creator_agent = get_workflow_creator_agent("hosted_vllm/Qwen/Qwen-32B-Instruct-AWQ")
 
@@ -191,11 +198,10 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                     console.print(f"[bold red]必须输入实例要求。[/bold red]")#f"[bold red]There MUST be a request to create the agent form.[/bold red]")
                     continue
                 requirements = query
-                workflow, messages = workflow_generating(workflow_generator, client, messages, context_variables, requirements, debug)
+                reasoning_content, workflow, messages = workflow_generating(workflow_generator, client, messages, context_variables, requirements, debug)
                 # workflow = "这是一个节点实例的语言描述"
                 agent = workflow_generator
-                if 'reasoning_content' in messages[-1] or messages[-1].reasoning_content:
-                    console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 思维链:\n[/bold green][bold blue]{messages[-1].reasoning_content}[/bold blue]")
+                console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 思维链:\n[/bold green][bold blue]{reasoning_content}[/bold blue]")
                 console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 生成的MCT节点实例语言描述:\n[/bold green][bold blue]{workflow}[/bold blue]")
                 last_message = '如果符合你的要求，请按"Enter"回车，将为你进一步生成格式化xml文件以进行前端展示；否则，请提出具体修改建议。'
                 # console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has generator workflow successfully with the following details:\n[/bold green][bold blue]{workflow}[/bold blue]")

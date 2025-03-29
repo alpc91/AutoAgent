@@ -148,7 +148,9 @@ class MetaChain:
 
         create_model = model_override or agent.model
 
-        if 'qwen-' in create_model.lower():
+        if 'openai' in create_model.lower():
+            base_url = API_BASE_URL
+        elif 'qwen-' in create_model.lower():
             base_url = QWEN_BASE_URL
         elif 'qwq' in create_model.lower():
             base_url = QWQ_BASE_URL
@@ -778,7 +780,9 @@ class MetaChain:
 
         create_model = model_override or agent.model
 
-        if 'qwen-' in create_model.lower():
+        if 'openai' in create_model.lower():
+            base_url = API_BASE_URL
+        elif 'qwen-' in create_model.lower():
             base_url = QWEN_BASE_URL
         elif 'qwq' in create_model.lower():
             base_url = QWQ_BASE_URL
@@ -980,6 +984,7 @@ class MetaChain:
                 # Add the thinking part and update the content
                 message.reasoning_content = think_part.strip()
                 message.content = content_part.strip()
+
                 
             message.sender = active_agent.name
             # debug_print(debug, "Received completion:", message.model_dump_json(indent=4), log_path=log_path, title="Received Completion", color="blue")

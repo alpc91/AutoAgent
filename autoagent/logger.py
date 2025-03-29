@@ -74,7 +74,7 @@ class MetaChainLogger:
         self._write_log(self._wrap_title("Tool Execution"))
         self._write_log(f"{self._wrap_timestamp(timestamp, color=False)}\ntool execution: {message['name']}\nResult:\n---\n{message['content']}\n---")
     def _print_assistant_message(self, message, timestamp: str):
-        if "reasoning_content" in message or message.reasoning_content:
+        if "reasoning_content" in message or (hasattr(message, 'reasoning_content') and message.reasoning_content):
             if MC_MODE: colors = ["grey58"] * 3
             else: colors = ["light_salmon3", "blue", "purple"]
             self.console.print(self._wrap_title("Assistant Message: reasoning_content", f"bold {colors[0]}"))

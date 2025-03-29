@@ -1,29 +1,29 @@
 <workflow>
-    <name>multi_agent_task_planning_workflow</name>
+    <name>task_comprehensive_understanding_and_planning</name>
     <system_input>
-        <key>task_description</key>
-        <description>用户需要规划的任务的完整中文描述，包含目标、约束条件和期望结果。</description>
+        <key>user_task_description</key>
+        <description>用户提供的任务描述，需要综合理解并进行规划。</description>
     </system_input>
     <system_output>
-        <key>task_plan</key>
-        <description>包含结构化任务分解、优先级排序、资源分配和风险评估的JSON格式最终规划方案。</description>
+        <key>final_plan</key>
+        <description>经过多个智能代理处理后生成的最终任务规划方案。</description>
     </system_output>
     <agents>
         <agent category="existing">
-            <name>任务解析代理</name>
-            <description>解析用户任务描述，提取核心要素并生成结构化任务模型</description>
+            <name>Task_Parser_Agent</name>
+            <description>解析任务内容并提取关键信息和目标。</description>
         </agent>
         <agent category="existing">
-            <name>确定目标代理</name>
-            <description>根据解析结果确定实际可行的最终目标和关键成功指标</description>
+            <name>Task_Target_Agent</name>
+            <description>结合实际条件确认任务的实际可行目标。</description>
         </agent>
         <agent category="existing">
-            <name>任务分解代理</name>
-            <description>将目标分解为有优先级的子任务和子目标，建立执行路径</description>
+            <name>Task_Decomposition_Agent</name>
+            <description>将任务分解为多个子任务，并定义每个子任务的目标、优先级及所需资源。</description>
         </agent>
         <agent category="existing">
-            <name>评估预测代理</name>
-            <description>评估分解方案的可行性，预测执行风险并提出优化建议</description>
+            <name>Evaluate_Predictive_Agent</name>
+            <description>评估子任务可行性，预测潜在障碍及风险，提出优化建议。</description>
         </agent>
     </agents>
     <events>
@@ -31,14 +31,14 @@
             <name>on_start</name>
             <inputs>
                 <input>
-                    <key>task_description</key>
-                    <description>用户需要规划的任务的完整中文描述，包含目标、约束条件和期望结果。</description>
+                    <key>user_task_description</key>
+                    <description>用户提供的任务描述。</description>
                 </input>
             </inputs>
             <outputs>
                 <output>
-                    <key>task_description</key>
-                    <description>用户需要规划的任务的完整中文描述，包含目标、约束条件和期望结果。</description>
+                    <key>user_task_description</key>
+                    <description>用户提供的任务描述。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -49,17 +49,15 @@
             <name>parse_task</name>
             <inputs>
                 <input>
-                    <key>task_description</key>
-                    <description>用户需要规划的任务的完整中文描述，包含目标、约束条件和期望结果。</description>
+                    <key>user_task_description</key>
+                    <description>用户提供的任务描述。</description>
                 </input>
             </inputs>
-            <task>
-                解析任务描述，提取关键要素并生成结构化任务模型
-            </task>
+            <task>解析任务内容并提取关键信息和目标。</task>
             <outputs>
                 <output>
-                    <key>parsed_task</key>
-                    <description>解析后的任务模型</description>
+                    <key>parsed_task_info</key>
+                    <description>解析后的任务关键信息和目标。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -69,25 +67,23 @@
                 <event>on_start</event>
             </listen>
             <agent>
-                <name>任务解析代理</name>
+                <name>Task_Parser_Agent</name>
                 <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
         <event>
-            <name>determine_target</name>
+            <name>confirm_target</name>
             <inputs>
                 <input>
-                    <key>parsed_task</key>
-                    <description>解析后的任务模型</description>
+                    <key>parsed_task_info</key>
+                    <description>解析后的任务关键信息和目标。</description>
                 </input>
             </inputs>
-            <task>
-                确定任务的最终目标和关键成功指标
-            </task>
+            <task>结合实际条件确认任务的实际可行目标。</task>
             <outputs>
                 <output>
-                    <key>target</key>
-                    <description>实际可行的最终目标和关键成功指标</description>
+                    <key>confirmed_targets</key>
+                    <description>确认后的任务实际可行目标。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -97,7 +93,7 @@
                 <event>parse_task</event>
             </listen>
             <agent>
-                <name>确定目标代理</name>
+                <name>Task_Target_Agent</name>
                 <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
@@ -105,61 +101,43 @@
             <name>decompose_task</name>
             <inputs>
                 <input>
-                    <key>target</key>
-                    <description>实际可行的最终目标和关键成功指标</description>
+                    <key>confirmed_targets</key>
+                    <description>确认后的任务实际可行目标。</description>
                 </input>
             </inputs>
-            <task>
-                将目标分解为有优先级的子任务和子目标，建立执行路径
-            </task>
+            <task>将任务分解为多个子任务，并定义每个子任务的目标、优先级及所需资源。</task>
             <outputs>
                 <output>
-                    <key>decomposed_task</key>
-                    <description>包含优先级排序的子任务和子目标</description>
+                    <key>subtasks</key>
+                    <description>分解后的子任务列表及其相关信息。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
                 </output>
             </outputs>
             <listen>
-                <event>determine_target</event>
+                <event>confirm_target</event>
             </listen>
             <agent>
-                <name>任务分解代理</name>
-               <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
+                <name>Task_Decomposition_Agent</name>
+                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
         <event>
-            <name>evaluate_plan</name>
+            <name>evaluate_subtasks</name>
             <inputs>
                 <input>
-                    <key>decomposed_task</key>
-                    <description>包含优先级排序的子任务和子目标</description>
+                    <key>subtasks</key>
+                    <description>分解后的子任务列表及其相关信息。</description>
                 </input>
             </inputs>
-            <task>
-                评估任务分解方案的可行性，预测执行风险并提出优化建议
-            </task>
+            <task>评估子任务可行性，预测潜在障碍及风险，提出优化建议。</task>
             <outputs>
                 <output>
-                    <key>optimized_plan</key>
-                    <description>优化后的任务计划</description>
-                    <condition>
-                        如果风险评估低于阈值
-                    </condition>
+                    <key>evaluated_subtasks</key>
+                    <description>经过评估后的子任务列表及其优化建议。</description>
                     <action>
                         <type>RESULT</type>
-                    </action>
-                </output>
-                <output>
-                    <key>repeat_decompose</key>
-                    <description>重新分解任务</description>
-                    <condition>
-                        如果风险评估超过阈值
-                    </condition>
-                    <action>
-                        <type>GOTO</type>
-                        <value>decompose_task</value>
                     </action>
                 </output>
             </outputs>
@@ -167,7 +145,33 @@
                 <event>decompose_task</event>
             </listen>
             <agent>
-                <name>评估预测代理</name>
+                <name>Evaluate_Predictive_Agent</name>
+                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
+            </agent>
+        </event>
+        <event>
+            <name>generate_final_plan</name>
+            <inputs>
+                <input>
+                    <key>evaluated_subtasks</key>
+                    <description>经过评估后的子任务列表及其优化建议。</description>
+                </input>
+            </inputs>
+            <task>汇总所有子任务的评估结果，形成最终的任务规划方案。</task>
+            <outputs>
+                <output>
+                    <key>final_plan</key>
+                    <description>最终生成的任务规划方案。</description>
+                    <action>
+                        <type>RESULT</type>
+                    </action>
+                </output>
+            </outputs>
+            <listen>
+                <event>evaluate_subtasks</event>
+            </listen>
+            <agent>
+                <name>Task_Decomposition_Agent</name>
                 <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
