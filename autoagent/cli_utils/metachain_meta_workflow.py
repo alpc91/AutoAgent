@@ -196,6 +196,7 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
 
     stage = 0
     sys_messages = ["现在是状态确定阶段。", "现在是目标分析阶段。", "现在是任务分配阶段。", "现在是方案计划阶段。"]
+    print(sys_messages[stage % 4])
     base_info_messages = rag.query(sys_messages[stage % 4], "base_info", top_k=1)['documents'][0]
     history_messages = rag.query(sys_messages[stage % 4], "history", top_k=1)['documents'][0]
 
@@ -224,10 +225,12 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
         if agent.name == "Workflow Former Agent" and query=="" and workflow_form:
             agent = workflow_generator
             stage += 1
+            print(sys_messages[stage % 4])
             base_info_messages = rag.query(sys_messages[stage % 4], "base_info", top_k=1)['documents'][0]
             history_messages = rag.query(sys_messages[stage % 4], "history", top_k=1)['documents'][0]
             last_message = sys_messages[stage % 4]+"请告诉我您对创建MCT节点实例还有什么具体需求？"
             workflow = None
+            workflow_form = None
             continue
 
         # words = query.split()

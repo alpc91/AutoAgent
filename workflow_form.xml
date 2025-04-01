@@ -1,21 +1,21 @@
 <workflow>
-    <name>task_target_determination_workflow</name>
+    <name>state_determination_workflow</name>
     <system_input>
-        <key>user_task</key>
-        <description>用户提供的任务内容，需要解析并确定目标。</description>
+        <key>task_description</key>
+        <description>任务的详细描述，用于解析和确定目标。</description>
     </system_input>
     <system_output>
-        <key>determined_target</key>
-        <description>根据任务解析结果确定的最终目标。</description>
+        <key>determined_objective</key>
+        <description>经过解析和确认后的任务目标。</description>
     </system_output>
     <agents>
         <agent category="existing">
             <name>任务解析智能代理</name>
-            <description>此代理用于解析任务内容并提取关键信息。</description>
+            <description>此代理用于对任务进行详细解析并提取关键内容。</description>
         </agent>
         <agent category="existing">
             <name>确定目标智能代理</name>
-            <description>此代理用于根据解析后的任务内容确定具体目标。</description>
+            <description>此代理用于根据解析后的任务内容，结合实际情况，确定最终目标。</description>
         </agent>
     </agents>
     <events>
@@ -23,14 +23,14 @@
             <name>on_start</name>
             <inputs>
                 <input>
-                    <key>user_task</key>
-                    <description>用户提供的任务内容，需要解析并确定目标。</description>
+                    <key>task_description</key>
+                    <description>任务的详细描述，用于解析和确定目标。</description>
                 </input>
             </inputs>
             <outputs>
                 <output>
-                    <key>user_task</key>
-                    <description>用户提供的任务内容，需要解析并确定目标。</description>
+                    <key>task_description</key>
+                    <description>任务的详细描述，用于解析和确定目标。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -41,17 +41,15 @@
             <name>parse_task</name>
             <inputs>
                 <input>
-                    <key>user_task</key>
-                    <description>用户提供的任务内容，需要解析并确定目标。</description>
+                    <key>task_description</key>
+                    <description>任务的详细描述，用于解析和确定目标。</description>
                 </input>
             </inputs>
-            <task>
-                解析用户提供的任务内容。
-            </task>
+            <task>解析任务以提取关键信息。</task>
             <outputs>
                 <output>
                     <key>parsed_task</key>
-                    <description>解析后的任务内容。</description>
+                    <description>解析后的任务关键信息。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -66,20 +64,18 @@
             </agent>
         </event>
         <event>
-            <name>determine_target</name>
+            <name>determine_objective</name>
             <inputs>
                 <input>
                     <key>parsed_task</key>
-                    <description>解析后的任务内容。</description>
+                    <description>解析后的任务关键信息。</description>
                 </input>
             </inputs>
-            <task>
-                根据解析后的任务内容确定目标。
-            </task>
+            <task>根据解析后的任务内容确定最终目标。</task>
             <outputs>
                 <output>
-                    <key>determined_target</key>
-                    <description>根据任务解析结果确定的最终目标。</description>
+                    <key>determined_objective</key>
+                    <description>经过解析和确认后的任务目标。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
