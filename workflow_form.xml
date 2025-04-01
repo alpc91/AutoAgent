@@ -1,29 +1,21 @@
 <workflow>
-    <name>multi_agent_task_planning_workflow</name>
+    <name>task_target_determination_workflow</name>
     <system_input>
         <key>user_task</key>
-        <description>用户需要规划的任务描述文本</description>
+        <description>用户提供的任务内容，需要解析并确定目标。</description>
     </system_input>
     <system_output>
-        <key>final_plan</key>
-        <description>包含评估优化后的任务执行计划的JSON结构</description>
+        <key>determined_target</key>
+        <description>根据任务解析结果确定的最终目标。</description>
     </system_output>
     <agents>
         <agent category="existing">
             <name>任务解析智能代理</name>
-            <description>此代理用于解析用户任务内容并生成结构化任务描述。</description>
+            <description>此代理用于解析任务内容并提取关键信息。</description>
         </agent>
         <agent category="existing">
-            <name>目标确定智能代理</name>
-            <description>此代理用于基于解析结果确定实际可执行的目标体系。</description>
-        </agent>
-        <agent category="existing">
-            <name>任务分解智能代理</name>
-            <description>此代理用于将目标分解为阶段子任务和里程碑节点。</description>
-        </agent>
-        <agent category="existing">
-            <name>评估预测智能代理</name>
-            <description>此代理用于对执行路径进行可行性评估和风险预测。</description>
+            <name>确定目标智能代理</name>
+            <description>此代理用于根据解析后的任务内容确定具体目标。</description>
         </agent>
     </agents>
     <events>
@@ -32,13 +24,13 @@
             <inputs>
                 <input>
                     <key>user_task</key>
-                    <description>用户需要规划的任务描述文本</description>
+                    <description>用户提供的任务内容，需要解析并确定目标。</description>
                 </input>
             </inputs>
             <outputs>
                 <output>
                     <key>user_task</key>
-                    <description>用户需要规划的任务描述文本</description>
+                    <description>用户提供的任务内容，需要解析并确定目标。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -46,20 +38,20 @@
             </outputs>
         </event>
         <event>
-            <name>task_parsing</name>
+            <name>parse_task</name>
             <inputs>
                 <input>
                     <key>user_task</key>
-                    <description>用户需要规划的任务描述文本</description>
+                    <description>用户提供的任务内容，需要解析并确定目标。</description>
                 </input>
             </inputs>
             <task>
-                解析用户任务内容并生成结构化任务描述
+                解析用户提供的任务内容。
             </task>
             <outputs>
                 <output>
                     <key>parsed_task</key>
-                    <description>解析后的结构化任务描述</description>
+                    <description>解析后的任务内容。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -74,129 +66,30 @@
             </agent>
         </event>
         <event>
-            <name>set_goals</name>
+            <name>determine_target</name>
             <inputs>
                 <input>
                     <key>parsed_task</key>
-                    <description>解析后的结构化任务描述</description>
+                    <description>解析后的任务内容。</description>
                 </input>
             </inputs>
             <task>
-                基于解析结果确定实际可执行的目标体系
+                根据解析后的任务内容确定目标。
             </task>
             <outputs>
                 <output>
-                    <key>goals</key>
-                    <description>实际可执行的目标体系</description>
+                    <key>determined_target</key>
+                    <description>根据任务解析结果确定的最终目标。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
                 </output>
             </outputs>
             <listen>
-                <event>task_parsing</event>
+                <event>parse_task</event>
             </listen>
             <agent>
-                <name>目标确定智能代理</name>
-                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
-            </agent>
-        </event>
-        <event>
-            <name>task_decomposition</name>
-            <inputs>
-                <input>
-                    <key>goals</key>
-                    <description>实际可执行的目标体系</description>
-                </input>
-            </inputs>
-            <task>
-                将目标分解为阶段子任务和里程碑节点
-            </task>
-            <outputs>
-                <output>
-                    <key>decomposed_tasks</key>
-                    <description>分解后的阶段子任务和里程碑节点</description>
-                    <action>
-                        <type>RESULT</type>
-                    </action>
-                </output>
-            </outputs>
-            <listen>
-                <event>set_goals</event>
-            </listen>
-            <agent>
-                <name>任务分解智能代理</name>
-               
-                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
-            </agent>
-        </event>
-        <event>
-            <name>evaluation_prediction</name>
-            <inputs>
-                <input>
-                    <key>decomposed_tasks</key>
-                    <description>分解后的阶段子任务和里程碑节点</description>
-                </input>
-            </inputs>
-            <task>
-                对执行路径进行可行性评估和风险预测
-            </task>
-            <outputs>
-                <output>
-                    <key>evaluation_result</key>
-                    <description>评估后的执行路径可行性结果</description>
-                    <condition>
-                        如果评估结果达标
-                    </condition>
-                    <action>
-                        <type>RESULT</type>
-                    </action>
-                </output>
-                <output>
-                    <key>replan</key>
-                    <description>需要重新规划执行路径</description>
-                    <condition>
-                        如果评估结果不达标
-                    </condition>
-                    <action>
-                        <type>GOTO</type>
-                        <value>task_decomposition</value>
-                    </action>
-                </output>
-            </outputs>
-            <listen>
-                <event>task_decomposition</event>
-            </listen>
-            <agent>
-                <name>评估预测智能代理</name>
-                <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
-            </agent>
-        </event>
-        <event>
-            <name>generate_final_plan</name>
-            <inputs>
-                <input>
-                    <key>evaluation_result</key>
-                    <description>评估后的执行路径可行性结果</description>
-                </input>
-            </inputs>
-            <task>
-                根据评估结果生成最终的任务执行计划
-            </task>
-            <outputs>
-                <output>
-                    <key>final_plan</key>
-                    <description>包含评估优化后的任务执行计划的JSON结构</description>
-                    <action>
-                        <type>RESULT</type>
-                    </action>
-                </output>
-            </outputs>
-            <listen>
-                <event>evaluation_prediction</event>
-            </listen>
-            <agent>
-                <name>评估预测智能代理</name>
+                <name>确定目标智能代理</name>
                 <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
