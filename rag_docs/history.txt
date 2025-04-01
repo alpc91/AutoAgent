@@ -1,29 +1,11 @@
-没有历史信息。
+状态确定阶段:
+智能代理只要选：任务解析智能代理、确定目标智能代理。
+工作流：
+    1. 任务解析智能代理解析任务；
+    2. 确定目标智能代理根据任务确定目标。
 
-
-现在是状态确定阶段。
-<workflow>
-    <name>task_target_determination_workflow</name>
-    <system_input>
-        <key>user_task</key>
-        <description>用户提供的任务内容，需要解析并确定目标。</description>
-    </system_input>
-    <system_output>
-        <key>determined_target</key>
-        <description>根据任务解析结果确定的最终目标。</description>
-    </system_output>
-    <agents>
-        <agent category="existing">
-            <name>任务解析智能代理</name>
-            <description>此代理用于解析任务内容并提取关键信息。</description>
-        </agent>
-        <agent category="existing">
-            <name>确定目标智能代理</name>
-            <description>此代理用于根据解析后的任务内容确定具体目标。</description>
-        </agent>
-    </agents>
-    <pattern>
-        1. 任务解析智能代理解析用户提供的任务内容。
-        2. 确定目标智能代理根据解析结果确定任务目标。
-    </pattern>
-</workflow>
+目标分析阶段:
+智能代理只要选：分解任务智能代理、评估预测智能代理。
+工作流：
+    1. 分解任务智能代理分配目标；
+    2. 评估预测智能代理根据评估结果调整目标。
