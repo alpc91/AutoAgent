@@ -1,67 +1,58 @@
-状态确定阶段:
-智能代理只要选：任务解析智能代理、确定目标智能代理。
-工作流：
-    1. 任务解析智能代理解析任务；
-    2. 确定目标智能代理根据任务确定目标。
+历史记录。
 
-目标分析阶段:
-智能代理只要选：分解任务智能代理、评估预测智能代理。
-工作流：
-    1. 分解任务智能代理分配目标；
-    2. 评估预测智能代理根据评估结果调整目标。
 
 
 现在是状态确定阶段。
 <workflow>
     <name>state_determination_workflow</name>
     <system_input>
-        <key>task_description</key>
-        <description>需要解析和确定目标的任务描述。</description>
+        <key>user_request</key>
+        <description>用户提出的状态确定阶段的任务需求。</description>
     </system_input>
     <system_output>
-        <key>determined_objective</key>
-        <description>经过解析和确认后的任务目标。</description>
+        <key>determined_state</key>
+        <description>经过解析和目标确认后的任务状态。</description>
     </system_output>
     <agents>
         <agent category="existing">
             <name>任务解析智能代理</name>
-            <description>此代理用于对任务进行详细解析并提取关键内容。</description>
+            <description>此代理用于对用户提出的任务进行解析，提取关键信息并结构化输出。</description>
         </agent>
         <agent category="existing">
             <name>确定目标智能代理</name>
-            <description>此代理用于根据解析后的任务内容，结合实际情况，确定最终目标。</description>
+            <description>此代理根据解析后的任务内容，结合实际可行性分析，确定最终任务目标。</description>
         </agent>
     </agents>
     <pattern>
-        1. 任务解析智能代理解析任务。
+        1. 任务解析智能代理解析任务；
         2. 确定目标智能代理根据任务确定目标。
     </pattern>
 </workflow>
 
 现在是目标分析阶段。
 <workflow>
-    <name>objective_analysis_workflow</name>
+    <name>goal_analysis_workflow</name>
     <system_input>
-        <key>determined_objective</key>
-        <description>经过解析和确认后的任务目标。</description>
+        <key>determined_state</key>
+        <description>状态确定阶段输出的任务状态。</description>
     </system_input>
     <system_output>
-        <key>adjusted_objective</key>
-        <description>根据评估结果调整后的最终目标。</description>
+        <key>adjusted_goals</key>
+        <description>经过分解和评估后调整的任务目标。</description>
     </system_output>
     <agents>
         <agent category="existing">
             <name>分解任务智能代理</name>
-            <description>此代理用于将任务目标分解为多个子目标或步骤。</description>
+            <description>此代理用于将任务分解为多个子任务，并分配目标。</description>
         </agent>
         <agent category="existing">
             <name>评估预测智能代理</name>
-            <description>此代理用于评估分解后的子目标可行性，并提出优化建议。</description>
+            <description>此代理用于根据评估结果对任务目标进行调整。</description>
         </agent>
     </agents>
     <pattern>
-        1. 分解任务智能代理将任务目标分配为多个子目标。
-        2. 评估预测智能代理根据评估结果调整任务目标。
+        1. 分解任务智能代理分配目标；
+        2. 评估预测智能代理根据评估结果调整目标。
     </pattern>
 </workflow>
 
@@ -69,52 +60,25 @@
 <workflow>
     <name>task_allocation_workflow</name>
     <system_input>
-        <key>adjusted_objective</key>
-        <description>经过评估和调整后的任务目标。</description>
+        <key>determined_state</key>
+        <description>状态确定阶段输出的任务状态。</description>
     </system_input>
     <system_output>
         <key>allocated_tasks</key>
-        <description>根据目标分解和分配后的具体任务列表。</description>
+        <description>经过分解和分配后的任务列表。</description>
     </system_output>
     <agents>
         <agent category="existing">
             <name>分解任务智能代理</name>
-            <description>此代理用于将调整后的目标进一步分解为具体的子任务。</description>
+            <description>此代理用于将任务分解为多个子任务，并进行合理分配。</description>
         </agent>
         <agent category="existing">
             <name>评估预测智能代理</name>
-            <description>此代理用于评估分解后的子任务可行性，并优化任务分配。</description>
+            <description>此代理用于根据评估结果优化任务分配方案。</description>
         </agent>
     </agents>
     <pattern>
-        1. 分解任务智能代理将调整后的目标分解为具体的子任务。
-        2. 评估预测智能代理对分解后的子任务进行评估，优化并最终确定任务分配。
-    </pattern>
-</workflow>
-
-现在是方案计划阶段。
-<workflow>
-    <name>solution_planning_workflow</name>
-    <system_input>
-        <key>adjusted_objective</key>
-        <description>经过评估和调整后的任务目标。</description>
-    </system_input>
-    <system_output>
-        <key>planned_solution</key>
-        <description>根据目标生成的详细解决方案。</description>
-    </system_output>
-    <agents>
-        <agent category="existing">
-            <name>分解任务智能代理</name>
-            <description>此代理用于将任务目标进一步分解为具体可执行的步骤。</description>
-        </agent>
-        <agent category="existing">
-            <name>评估预测智能代理</name>
-            <description>此代理用于评估分解后的步骤，并优化解决方案计划。</description>
-        </agent>
-    </agents>
-    <pattern>
-        1. 分解任务智能代理将任务目标分解为具体的执行步骤。
-        2. 评估预测智能代理对分解后的步骤进行评估，优化并生成最终的解决方案计划。
+        1. 分解任务智能代理将任务分解为多个子任务；
+        2. 评估预测智能代理根据评估结果优化任务分配。
     </pattern>
 </workflow>

@@ -169,6 +169,12 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
         collection_name="history",
         overwrite=True
     ))
+
+    print(rag.process_input(
+        input_path="./rag_docs/trick.txt",
+        collection_name="trick",
+        overwrite=True
+    ))
     
     # # 执行查询
     # question = "数据库说了啥？"
@@ -197,8 +203,12 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     stage = 0
     sys_messages = ["现在是状态确定阶段。", "现在是目标分析阶段。", "现在是任务分配阶段。", "现在是方案计划阶段。"]
     print(sys_messages[stage % 4])
-    base_info_messages = rag.query(sys_messages[stage % 4], "base_info", top_k=1)['documents'][0]
-    history_messages = rag.query(sys_messages[stage % 4], "history", top_k=1)['documents'][0]
+    base_info_messages = rag.query(sys_messages[stage % 4], "base_info", top_k=2)['documents']
+    base_info_messages = "\n".join(base_info_messages)
+    history_messages = rag.query(sys_messages[stage % 4], "history", top_k=2)['documents']
+    history_messages = "\n".join(history_messages)
+    trick_messages = rag.query(sys_messages[stage % 4], "trick", top_k=2)['documents']
+    trick_messages = "\n".join(trick_messages)
 
     last_message = sys_messages[stage % 4]+"请告诉我您对创建MCT节点实例还有什么具体需求？"#请告诉我您想要创建什么实例（选择哪些智能代理，形成什么工作流）？"#"Tell me what do you want to create with `Workflow Chain`?"
     workflow = None
@@ -226,8 +236,15 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
             agent = workflow_generator
             stage += 1
             print(sys_messages[stage % 4])
-            base_info_messages = rag.query(sys_messages[stage % 4], "base_info", top_k=1)['documents'][0]
-            history_messages = rag.query(sys_messages[stage % 4], "history", top_k=1)['documents'][0]
+            base_info_messages = rag.query(sys_messages[stage % 4], "base_info", top_k=2)['documents']
+            base_info_messages = "\n".join(base_info_messages)
+            history_messages = rag.query(sys_messages[stage % 4], "history", top_k=2)['documents']
+            history_messages = "\n".join(history_messages)
+            trick_messages = rag.query(sys_messages[stage % 4], "trick", top_k=2)['documents']
+            trick_messages = "\n".join(trick_messages)
+            print(base_info_messages)
+            print(history_messages)
+            print(trick_messages)
             last_message = sys_messages[stage % 4]+"请告诉我您对创建MCT节点实例还有什么具体需求？"
             workflow = None
             workflow_form = None
@@ -250,7 +267,7 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                 # if query == "":
                 #     console.print(f"[bold red]必须输入实例要求。[/bold red]")#f"[bold red]There MUST be a request to create the agent form.[/bold red]")
                 #     continue
-                requirements = base_info_messages+'\n'+history_messages+'\n'+sys_messages[stage % 4]+'\n'+query
+                requirements = base_info_messages+'\n'+history_messages+'\n'+trick_messages+'\n'+sys_messages[stage % 4]+'\n'+query
                 reasoning_content, workflow, messages = workflow_generating(workflow_generator, client, messages, context_variables, requirements, debug)
                 # workflow = "这是一个节点实例的语言描述"
                 agent = workflow_generator
