@@ -178,7 +178,7 @@ def update_guidance(context_variables):
     console.print(Panel(NOTES,title="Important Notes", expand=True))
 
 @cli.command(name='main')  # 修改这里，使用连字符
-@click.option('--container_name', default='auto_agent', help='the function to get the agent')
+@click.option('--container_name', default='autoagent', help='the function to get the agent')
 @click.option('--port', default=12347, help='the port to run the container')
 @click.option('--test_pull_name', default='autoagent_mirror', help='the name of the test pull')
 @click.option('--git_clone', default=True, help='whether to clone a mirror of the repository')

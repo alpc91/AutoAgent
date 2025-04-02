@@ -73,7 +73,7 @@ class LocalEnv:
         return None
     def run_command(self, command, stream_callback=None):
         assert self.conda_sh is not None, "Conda.sh not found"
-        modified_command = f"/bin/bash -c 'source {self.conda_sh} && conda activate auto_agent && cd {self.docker_workplace} && {command}'"
+        modified_command = f"/bin/bash -c 'source {self.conda_sh} && conda activate autoagent && cd {self.docker_workplace} && {command}'"
         process = subprocess.Popen(modified_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         output = ''
         while True:

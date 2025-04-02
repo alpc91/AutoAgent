@@ -141,8 +141,8 @@ def create_environment_local(docker_config: DockerConfig):
     """
     code_env = LocalEnv(docker_config)
 
-    web_env = BrowserEnv(browsergym_eval_env = None, local_root=docker_config.local_root, workplace_name=docker_config.workplace_name)
-    file_env = RequestsMarkdownBrowser(viewport_size=1024 * 5, local_root=docker_config.local_root, workplace_name=docker_config.workplace_name, downloads_folder=os.path.join(docker_config.local_root, docker_config.workplace_name, "downloads"))
+    web_env = None#BrowserEnv(browsergym_eval_env = None, local_root=docker_config.local_root, workplace_name=docker_config.workplace_name)
+    file_env = None#RequestsMarkdownBrowser(viewport_size=1024 * 5, local_root=docker_config.local_root, workplace_name=docker_config.workplace_name, downloads_folder=os.path.join(docker_config.local_root, docker_config.workplace_name, "downloads"))
     
     return code_env, web_env, file_env
 
@@ -156,7 +156,7 @@ def update_guidance(context_variables):
     console.print(Panel(NOTES,title="Important Notes", expand=True))
 
 # @cli.command(name='main')  # 修改这里，使用连字符
-# @click.option('--container_name', default='auto_agent', help='the function to get the agent')
+# @click.option('--container_name', default='autoagent', help='the function to get the agent')
 # @click.option('--port', default=12347, help='the port to run the container')
 # @click.option('--test_pull_name', default='autoagent_mirror', help='the name of the test pull')
 # @click.option('--git_clone', default=True, help='whether to clone a mirror of the repository')
@@ -190,7 +190,7 @@ def main(container_name: str, port: int, test_pull_name: str, git_clone: bool, l
         progress.update(task, description="[cyan]Setting up autoagent...[/cyan]\n")
     
     clear_screen()
-    context_variables = {"working_dir": docker_config.workplace_name, "code_env": code_env, "web_env": web_env, "file_env": file_env}
+    context_variables = {}#{"working_dir": docker_config.workplace_name, "code_env": code_env, "web_env": web_env, "file_env": file_env}
     print(context_variables)
 
     clear_screen()
@@ -198,7 +198,7 @@ def main(container_name: str, port: int, test_pull_name: str, git_clone: bool, l
  
 
 parser = argparse.ArgumentParser(description='argparse')
-parser.add_argument('--container_name', type=str, default='auto_agent', help='the function to get the agent')
+parser.add_argument('--container_name', type=str, default='autoagent', help='the function to get the agent')
 parser.add_argument('--port', type=int, default=12347, help='the port to run the container')
 parser.add_argument('--test_pull_name', type=str, default='autoagent_mirror', help='the name of the test pull')
 parser.add_argument('--git_clone', type=bool, default=True, help='whether to clone a mirror of the repository')

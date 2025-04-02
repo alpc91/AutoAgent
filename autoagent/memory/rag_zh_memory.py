@@ -103,6 +103,8 @@ class EnhancedMemory:
     """增强版记忆管理系统"""
     def __init__(self, project_path: str, db_name: str = '.rag_db'):
         self.client = chromadb.PersistentClient(path=os.path.join(project_path, db_name))
+        print(f"连接到数据库: {os.path.join(project_path, db_name)}")
+        # self.embedder = embedding_functions.DefaultEmbeddingFunction()
         self.embedder = embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name="BAAI/bge-large-zh-v1.5",
             device="cuda" if torch.cuda.is_available() else "cpu",
