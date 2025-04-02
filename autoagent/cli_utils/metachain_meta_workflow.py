@@ -270,17 +270,17 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                 requirements = base_info_messages+'\n'+history_messages+'\n'+trick_messages+'\n'+sys_messages[stage % 4]+'\n'+query
                 reasoning_content, workflow, messages = workflow_generating(workflow_generator, client, messages, context_variables, requirements, debug)
                 # workflow = "这是一个节点实例的语言描述"
-                agent = workflow_generator
+                agent = workflow_former
                 console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 思维链:\n[/bold green][bold blue]{reasoning_content}[/bold blue]")
                 console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 生成的MCT节点实例语言描述:\n[/bold green][bold blue]{workflow}[/bold blue]")
-                last_message = '如果符合你的要求，请按"Enter"回车，将为你进一步生成格式化xml文件以进行前端展示；否则，请提出具体修改建议。'
+                # last_message = '如果符合你的要求，请按"Enter"回车，将为你进一步生成格式化xml文件以进行前端展示；否则，请提出具体修改建议。'
                 # console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has generator workflow successfully with the following details:\n[/bold green][bold blue]{workflow}[/bold blue]")
                 # last_message = "It is time to create the desired workflow xml, do you have any suggestions for creating the workflow?"
-            case "Workflow Former Agent":
+            # case "Workflow Former Agent":
                 # if query == "":
                 #     console.print(f"[bold red]必须输入实例要求。[/bold red]")#f"[bold red]There MUST be a request to create the agent form.[/bold red]")
                 #     continue
-                advice = query
+                advice = ""#query
                 workflow_form, output_xml_form, messages = workflow_profiling(workflow_former, client, messages, context_variables, advice, debug)
                 # workflow_form = "这是一个节点实例的xml描述"
                 # output_xml_form = "这是一个节点实例的xml输出"

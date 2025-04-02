@@ -1,21 +1,21 @@
 <workflow>
-    <name>task_allocation_workflow</name>
+    <name>goal_analysis_workflow</name>
     <system_input>
         <key>determined_state</key>
         <description>状态确定阶段输出的任务状态。</description>
     </system_input>
     <system_output>
-        <key>allocated_tasks</key>
-        <description>经过分解和分配后的任务列表。</description>
+        <key>adjusted_goals</key>
+        <description>根据评估结果调整后的目标。</description>
     </system_output>
     <agents>
         <agent category="existing">
             <name>分解任务智能代理</name>
-            <description>此代理用于将任务分解为多个子任务，并进行合理分配。</description>
+            <description>此代理用于将任务分解为多个子任务并分配目标。</description>
         </agent>
         <agent category="existing">
             <name>评估预测智能代理</name>
-            <description>此代理用于根据评估结果优化任务分配方案。</description>
+            <description>此代理用于对分解后的任务进行评估，并根据评估结果调整目标。</description>
         </agent>
     </agents>
     <events>
@@ -45,10 +45,10 @@
                     <description>状态确定阶段输出的任务状态。</description>
                 </input>
             </inputs>
-            <task>将任务分解为多个子任务并进行合理分配。</task>
+            <task>将任务分解为多个子任务并分配目标。</task>
             <outputs>
                 <output>
-                    <key>decomposed_tasks</key>
+                    <key>sub_tasks</key>
                     <description>分解后的子任务列表。</description>
                     <action>
                         <type>RESULT</type>
@@ -64,18 +64,18 @@
             </agent>
         </event>
         <event>
-            <name>task_evaluation</name>
+            <name>goal_evaluation</name>
             <inputs>
                 <input>
-                    <key>decomposed_tasks</key>
+                    <key>sub_tasks</key>
                     <description>分解后的子任务列表。</description>
                 </input>
             </inputs>
-            <task>根据评估结果优化任务分配方案。</task>
+            <task>对分解后的任务进行评估，并根据评估结果调整目标。</task>
             <outputs>
                 <output>
-                    <key>allocated_tasks</key>
-                    <description>经过分解和分配后的任务列表。</description>
+                    <key>adjusted_goals</key>
+                    <description>根据评估结果调整后的目标。</description>
                     <action>
                         <type>RESULT</type>
                     </action>

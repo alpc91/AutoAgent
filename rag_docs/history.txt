@@ -82,3 +82,30 @@
         2. 评估预测智能代理根据评估结果优化任务分配。
     </pattern>
 </workflow>
+
+现在是状态确定阶段。
+<workflow>
+    <name>state_determination_workflow</name>
+    <system_input>
+        <key>user_request</key>
+        <description>用户提出的状态确定阶段的任务需求。</description>
+    </system_input>
+    <system_output>
+        <key>determined_state</key>
+        <description>经过解析和目标确认后的任务状态。</description>
+    </system_output>
+    <agents>
+        <agent category="existing">
+            <name>任务解析智能代理</name>
+            <description>此代理用于对用户提出的任务进行解析，提取关键信息并结构化输出。</description>
+        </agent>
+        <agent category="existing">
+            <name>确定目标智能代理</name>
+            <description>此代理根据解析后的任务内容，结合实际可行性分析，确定最终任务目标。</description>
+        </agent>
+    </agents>
+    <pattern>
+        1. 任务解析智能代理解析任务；
+        2. 确定目标智能代理根据任务确定目标。
+    </pattern>
+</workflow>
