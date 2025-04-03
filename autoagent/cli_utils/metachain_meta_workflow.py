@@ -35,8 +35,8 @@ Directly output the form in the XML format without ANY other text.
 
     return reasoning_content, workflow, messages
 
-def workflow_profiling(workflow_former, client, messages, context_variables, advice, debug):
-    messages.append({"role": "user", "content": advice + """
+def workflow_profiling(workflow_former, client, messages, context_variables, debug):
+    messages.append({"role": "user", "content": """
 Directly output the form in the XML format without ANY other text.
 """})
     response = client.run(workflow_former, messages, context_variables, debug=debug)
@@ -202,7 +202,7 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
 
     stage = 0
     sys_messages = ["现在是状态确定阶段。", "现在是目标分析阶段。", "现在是任务分配阶段。", "现在是方案计划阶段。"]
-    print(sys_messages[stage % 4])
+    # print(sys_messages[stage % 4])
     base_info_messages = rag.query(sys_messages[stage % 4], "base_info", top_k=2)['documents']
     base_info_messages = "\n".join(base_info_messages)
     history_messages = rag.query(sys_messages[stage % 4], "history", top_k=2)['documents']
@@ -222,9 +222,9 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
             logo_text = "Workflow Chain completed. See you next time! :waving_hand:"
             console.print(Panel(logo_text, style="bold salmon1", expand=True))
             break
-        if agent.name == "Workflow Generator Agent" and query=="" and workflow:
-            agent = workflow_former
+            
 
+        if query=="" and workflow_form:
             # 将当前阶段信息和工作流添加到历史记录文件中
             with open("./rag_docs/history.txt", "a", encoding="utf-8") as history_file:
                 history_file.write("\n\n" + sys_messages[stage % 4] + "\n" + workflow)
@@ -232,19 +232,19 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
             # 更新RAG数据库
             print(rag.add_text(sys_messages[stage % 4]+"\n"+workflow, "history"))
 
-        if agent.name == "Workflow Former Agent" and query=="" and workflow_form:
             agent = workflow_generator
             stage += 1
-            print(sys_messages[stage % 4])
+            messages = []
+            # print(sys_messages[stage % 4])
             base_info_messages = rag.query(sys_messages[stage % 4], "base_info", top_k=2)['documents']
             base_info_messages = "\n".join(base_info_messages)
             history_messages = rag.query(sys_messages[stage % 4], "history", top_k=2)['documents']
             history_messages = "\n".join(history_messages)
             trick_messages = rag.query(sys_messages[stage % 4], "trick", top_k=2)['documents']
             trick_messages = "\n".join(trick_messages)
-            print(base_info_messages)
-            print(history_messages)
-            print(trick_messages)
+            # print(base_info_messages)
+            # print(history_messages)
+            # print(trick_messages)
             last_message = sys_messages[stage % 4]+"请告诉我您对创建MCT节点实例还有什么具体需求？"
             workflow = None
             workflow_form = None
@@ -267,21 +267,20 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                 # if query == "":
                 #     console.print(f"[bold red]必须输入实例要求。[/bold red]")#f"[bold red]There MUST be a request to create the agent form.[/bold red]")
                 #     continue
-                requirements = base_info_messages+'\n'+history_messages+'\n'+trick_messages+'\n'+sys_messages[stage % 4]+'\n'+query
+                if workflow_form:
+                    requirements = query
+                else:
+                    requirements = base_info_messages+'\n'+history_messages+'\n'+trick_messages+'\n'+sys_messages[stage % 4]+'\n'+query
+                
+                # print(f"实例要求:\n {requirements}\n\n")
+
                 reasoning_content, workflow, messages = workflow_generating(workflow_generator, client, messages, context_variables, requirements, debug)
                 # workflow = "这是一个节点实例的语言描述"
                 agent = workflow_former
                 console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 思维链:\n[/bold green][bold blue]{reasoning_content}[/bold blue]")
                 console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 生成的MCT节点实例语言描述:\n[/bold green][bold blue]{workflow}[/bold blue]")
-                # last_message = '如果符合你的要求，请按"Enter"回车，将为你进一步生成格式化xml文件以进行前端展示；否则，请提出具体修改建议。'
-                # console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has generator workflow successfully with the following details:\n[/bold green][bold blue]{workflow}[/bold blue]")
-                # last_message = "It is time to create the desired workflow xml, do you have any suggestions for creating the workflow?"
-            # case "Workflow Former Agent":
-                # if query == "":
-                #     console.print(f"[bold red]必须输入实例要求。[/bold red]")#f"[bold red]There MUST be a request to create the agent form.[/bold red]")
-                #     continue
-                advice = ""#query
-                workflow_form, output_xml_form, messages = workflow_profiling(workflow_former, client, messages, context_variables, advice, debug)
+
+                workflow_form, output_xml_form, messages = workflow_profiling(workflow_former, client, messages, context_variables, debug)
                 # workflow_form = "这是一个节点实例的xml描述"
                 # output_xml_form = "这是一个节点实例的xml输出"
                 if workflow_form is None:
@@ -290,7 +289,7 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                     # console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] has not created workflow form successfully, please modify your requirements again.[/bold red]")
                     # last_message = "Tell me what do you want to create with `Workflow Chain`?"
                     continue
-                agent = workflow_former 
+                agent = workflow_generator 
                 context_variables["workflow_form"] = workflow_form
 
                 console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 生成的xml为:\n[/bold green][bold blue]{output_xml_form}[/bold blue]")

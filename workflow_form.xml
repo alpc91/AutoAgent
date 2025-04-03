@@ -1,21 +1,21 @@
 <workflow>
-    <name>goal_analysis_workflow</name>
+    <name>status_determination_workflow</name>
     <system_input>
-        <key>determined_state</key>
-        <description>状态确定阶段输出的任务状态。</description>
+        <key>task_description</key>
+        <description>用户提供的任务描述信息。</description>
     </system_input>
     <system_output>
-        <key>adjusted_goals</key>
-        <description>根据评估结果调整后的目标。</description>
+        <key>determined_goal</key>
+        <description>确定的任务目标。</description>
     </system_output>
     <agents>
         <agent category="existing">
-            <name>分解任务智能代理</name>
-            <description>此代理用于将任务分解为多个子任务并分配目标。</description>
+            <name>任务解析智能代理</name>
+            <description>此代理用于对任务进行解析，理解任务的具体内容和要求。</description>
         </agent>
         <agent category="existing">
-            <name>评估预测智能代理</name>
-            <description>此代理用于对分解后的任务进行评估，并根据评估结果调整目标。</description>
+            <name>确定目标智能代理</name>
+            <description>此代理用于根据解析后的任务内容，结合实际情况确定最终任务目标。</description>
         </agent>
     </agents>
     <events>
@@ -23,14 +23,14 @@
             <name>on_start</name>
             <inputs>
                 <input>
-                    <key>determined_state</key>
-                    <description>状态确定阶段输出的任务状态。</description>
+                    <key>task_description</key>
+                    <description>用户提供的任务描述信息。</description>
                 </input>
             </inputs>
             <outputs>
                 <output>
-                    <key>determined_state</key>
-                    <description>状态确定阶段输出的任务状态。</description>
+                    <key>task_description</key>
+                    <description>用户提供的任务描述信息。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -38,18 +38,18 @@
             </outputs>
         </event>
         <event>
-            <name>task_decomposition</name>
+            <name>parse_task</name>
             <inputs>
                 <input>
-                    <key>determined_state</key>
-                    <description>状态确定阶段输出的任务状态。</description>
+                    <key>task_description</key>
+                    <description>用户提供的任务描述信息。</description>
                 </input>
             </inputs>
-            <task>将任务分解为多个子任务并分配目标。</task>
+            <task>解析任务并理解具体要求。</task>
             <outputs>
                 <output>
-                    <key>sub_tasks</key>
-                    <description>分解后的子任务列表。</description>
+                    <key>parsed_task</key>
+                    <description>解析后的任务具体内容和要求。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
@@ -59,33 +59,33 @@
                 <event>on_start</event>
             </listen>
             <agent>
-                <name>分解任务智能代理</name>
+                <name>任务解析智能代理</name>
                 <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>
         <event>
-            <name>goal_evaluation</name>
+            <name>determine_goal</name>
             <inputs>
                 <input>
-                    <key>sub_tasks</key>
-                    <description>分解后的子任务列表。</description>
+                    <key>parsed_task</key>
+                    <description>解析后的任务具体内容和要求。</description>
                 </input>
             </inputs>
-            <task>对分解后的任务进行评估，并根据评估结果调整目标。</task>
+            <task>根据解析后的任务内容，结合实际情况确定最终任务目标。</task>
             <outputs>
                 <output>
-                    <key>adjusted_goals</key>
-                    <description>根据评估结果调整后的目标。</description>
+                    <key>determined_goal</key>
+                    <description>确定的任务目标。</description>
                     <action>
                         <type>RESULT</type>
                     </action>
                 </output>
             </outputs>
             <listen>
-                <event>task_decomposition</event>
+                <event>parse_task</event>
             </listen>
             <agent>
-                <name>评估预测智能代理</name>
+                <name>确定目标智能代理</name>
                 <model>hosted_vllm/Qwen/QwQ-32B-AWQ</model>
             </agent>
         </event>

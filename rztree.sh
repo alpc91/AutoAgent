@@ -1,2 +1,4 @@
 export HF_ENDPOINT="https://hf-mirror.com"
-export 
+export TOKENIZERS_PARALLELISM=false
+
+python rztree.py
