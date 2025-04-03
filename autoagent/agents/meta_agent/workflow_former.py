@@ -554,10 +554,10 @@ def get_workflow_former_agent(model: str) -> str:
     这个智能代理用于创建一个xml，该xml可用于创建由多个代理组成的协作流程。
     """
     def instructions(context_variables):
-        workflow_list = list_workflows(context_variables)
-        workflow_list = json.loads(workflow_list)
-        workflow_list = [workflow_name for workflow_name in workflow_list.keys()]
-        workflow_list_str = ", ".join(workflow_list)
+        # workflow_list = list_workflows(context_variables)
+        # workflow_list = json.loads(workflow_list)
+        # workflow_list = [workflow_name for workflow_name in workflow_list.keys()]
+        # workflow_list_str = ", ".join(workflow_list)
         return r"""\
 您是一个专门用于创建多智能代理协作工作流xml的智能代理。
 

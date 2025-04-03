@@ -16,10 +16,10 @@ def get_workflow_generator_agent(model: str) -> str:
     这个智能代理用于根据用户需求，从智能代理列表中挑选所需智能代理，并生成他们之间的协作流程描述，为下一步创建一个协作流程xml文件奠定基础。
     """
     def instructions(context_variables):
-        workflow_list = list_workflows(context_variables)
-        workflow_list = json.loads(workflow_list)
-        workflow_list = [workflow_name for workflow_name in workflow_list.keys()]
-        workflow_list_str = ", ".join(workflow_list)
+        # workflow_list = list_workflows(context_variables)
+        # workflow_list = json.loads(workflow_list)
+        # workflow_list = [workflow_name for workflow_name in workflow_list.keys()]
+        # workflow_list_str = ", ".join(workflow_list)
         return r"""\
 您是一个专门用于创建多智能代理协作工作流的智能代理。
 
