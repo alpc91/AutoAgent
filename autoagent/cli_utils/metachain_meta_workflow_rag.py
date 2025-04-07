@@ -25,8 +25,8 @@ import sys, json
 import asyncio, time
 from loguru import logger
 from typing import List, Dict
-from ultrarag.modules.llm import BaseLLM, OpenaiLLM
-from ultrarag.modules.router import BaseRouter
+# from ultrarag.modules.llm import BaseLLM, OpenaiLLM
+# from ultrarag.modules.router import BaseRouter
 from ultrarag.modules.embedding import EmbClient
 from ultrarag.modules.database import BaseIndex, QdrantIndex
 from ultrarag.modules.reranker import BaseRerank, RerankerClient
@@ -36,13 +36,13 @@ from ultrarag.modules.embedding import BaseEmbedding
 from ultrarag.modules.knowledge_managment import Knowledge_Managment
 import hashlib
 from ultrarag.modules.embedding import EmbeddingClient, load_model, OpenAIEmbedding
-from ultrarag.modules.llm import OpenaiLLM, HuggingfaceClient, HuggingFaceServer, VllmServer
+# from ultrarag.modules.llm import OpenaiLLM, HuggingfaceClient, HuggingFaceServer, VllmServer
 from ultrarag.modules.reranker import RerankerClient, RerankerServer
 
+import json
+
 def workflow_generating(workflow_generator, client, messages, context_variables, requirements, debug):
-    messages.append({"role": "user", "content": requirements + """
-Directly output the form in the XML format without ANY other text.
-"""})
+    messages.append({"role": "user", "content": requirements})
     response = client.run(workflow_generator, messages, context_variables, debug=debug)
     workflow = response.messages[-1]["content"]
     if "reasoning_content" in response.messages[-1] or (hasattr(response.messages[-1], 'reasoning_content') and response.messages[-1].reasoning_content):
@@ -53,33 +53,57 @@ Directly output the form in the XML format without ANY other text.
 
     return reasoning_content, workflow, messages
 
+
+def parse_json_form(json_str: str) -> str:
+    """
+    读取并解析workflow form json文件
+    
+    Args:
+        json_content: json文件内容
+    
+    Returns:
+        解析后的json对象，如果解析失败返回None
+    """
+    if not isinstance(json_str, str):
+        return "Invalid input: json_str should be a string"
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError as e:
+        error_msg = (
+            f"JSON解析错误: {e.msg} "
+            f"(行号: {e.lineno}, 位置: {e.pos})"
+        )
+        return  error_msg
+    
+
+
 def workflow_profiling(workflow_former, client, messages, context_variables, debug):
     messages.append({"role": "user", "content": """
-Directly output the form in the XML format without ANY other text.
+Directly output the form in the json format without ANY other text.
 """})
     response = client.run(workflow_former, messages, context_variables, debug=debug)
-    output_xml_form = response.messages[-1]["content"]
+    output_json_form = response.messages[-1]["content"]
     messages.extend(response.messages)
 
     MAX_RETRY = 3
     for i in range(MAX_RETRY):
-        workflow_form = parse_workflow_form(output_xml_form)
-        if isinstance(workflow_form, WorkflowForm):
-            # 如果成功解析XML为workflow form，则保存成xml文件
-            with open("workflow_form.xml", "w") as f:
-                f.write(output_xml_form)
+        workflow_form = parse_json_form(output_json_form)
+        if isinstance(workflow_form, dict):
+            # 如果成功解析json为workflow form，则输出
+            with open("workflow_form.json", "w") as f:
+                f.write(output_json_form)
             break
         elif isinstance(workflow_form, str):
-            print(f"Error parsing XML to workflow form: {workflow_form}. Retry {i+1}/{MAX_RETRY}")
-            messages.append({"role": "user", "content": f"Error parsing XML to workflow form, the error message is: {workflow_form}\nNote that there are some special restrictions for creating workflow form, please try again."})
+            print(f"Error parsing json to workflow form: {workflow_form}. Retry {i+1}/{MAX_RETRY}")
+            messages.append({"role": "user", "content": f"Error parsing json to workflow form, the error message is: {workflow_form}\nNote that there are some special restrictions for creating workflow form, please try again."})
             response = client.run(workflow_former, messages, context_variables, debug=debug)
-            output_xml_form = response.messages[-1]["content"]
+            output_json_form = response.messages[-1]["content"]
             messages.extend(response.messages)
         else:
             raise ValueError(f"Unexpected error: {workflow_form}")
-    return workflow_form, output_xml_form, messages
+    return workflow_form, output_json_form, messages
 
-def workflow_editing(workflow_creator_agent, client, messages, context_variables, workflow_form, output_xml_form, requirements, task, debug, suggestions = ""):
+def workflow_editing(workflow_creator_agent, client, messages, context_variables, workflow_form, output_json_form, requirements, task, debug, suggestions = ""):
     MAX_RETRY = 3
     if suggestions != "":
         suggestions = "[IMPORTANT] Here are some suggestions for creating the workflow: " + suggestions
@@ -112,7 +136,7 @@ def workflow_editing(workflow_creator_agent, client, messages, context_variables
     messages.append({"role": "user", "content": f"""\
 WORKFLOW CREATION INSTRUCTIONS:
 The user's request to create workflow is: {requirements}
-Given the completed workflow form with XML format: {output_xml_form}
+Given the completed workflow form with XML format: {output_json_form}
 
 TASK: 
 Your task is to create the workflow for me, and then test the workflow by running the workflow using `run_workflow` tool to complete the user's task: 
@@ -136,7 +160,7 @@ Remember: you can NOT stop util you have created the workflow and tested it succ
         messages.append({"role": "user", "content": f"""\
 WORKFLOW CREATION INSTRUCTIONS:
 The user's request to create workflow is: {requirements}
-Given the completed workflow form with XML format: {output_xml_form}
+Given the completed workflow form with XML format: {output_json_form}
 
 TASK: 
 Your task is to create the workflow for me, and then test the workflow by running the workflow using `run_workflow` tool to complete the user's task: 
@@ -215,45 +239,64 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     reranker_model_path = "/home/crf/workspace/UltraRAG/resource/models/minicpm-reranker-light"
     reranker = RerankerServer(model_path=reranker_model_path, device="cuda")
 
+    
     kb_config_id = generate_kb_config_id(embedding_model_name)
-    file_list = ["./rag_docs/base_info.txt"]
-    kb_id = generate_knowledge_base_id("base_info", kb_config_id, file_list, chunk_size, overlap, None)
-    kb_path = f"./rag_db/{kb_id}.jsonl"
     qdrant_dir = f"./rag_db_qdrant"
-    # todo
+
     os.makedirs("./rag_db", exist_ok=True)
     os.makedirs(qdrant_dir, exist_ok=True)
-    # others_json = json.loads(others)
+
+    kb_name = "base_info"
+    file_list = ["./rag_docs/base_info.txt"]
+    kb_id = generate_knowledge_base_id(kb_name, kb_config_id, file_list, chunk_size, overlap, None)
+    kb_path = f"./rag_db/{kb_id}.jsonl"
     kb_df = None
-    kb_df = asyncio.run(Knowledge_Managment.index(kb_config_id,"base_info",embedding_model_name,embedding_model_path,qdrant_dir,kb_path,kb_id,file_list,embedding,chunk_size,overlap,None,kb_df))
+    kb_df = asyncio.run(Knowledge_Managment.index(kb_config_id,kb_name,embedding_model_name,embedding_model_path,qdrant_dir,kb_path,kb_id,file_list,embedding,chunk_size,overlap,None,kb_df))
     os.makedirs(os.path.dirname(path_kb_csv), exist_ok=True)
     kb_df.to_csv(path_kb_csv, index=False)
 
 
-
-    rag = RAGPipeline("./rag_db")
-
-    # _index = QdrantIndex(database_url, encoder=EmbClient(url_or_path=embedding_url))
-    # _rerank = RerankerClient(url=reranker_url)
+    # database_url = ":memory:"
+    searcher = Knowledge_Managment.get_searcher(
+                embedding_model=embedding,
+                knowledge_id=[kb_id],
+                knowledge_stat_tab_path=path_kb_csv
+            )
     
-    # 处理文档（示例路径）
-    print(rag.process_input(
-        input_path="./rag_docs/base_info.txt",
-        collection_name="base_info",
-        overwrite=True
-    ))
+    
+    query = "从上下文信息中进行学习"
+    recalls = asyncio.run(searcher.search(query=query, topn=25))
+    scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
+    reranks = reranks[:5]
 
-    print(rag.process_input(
-        input_path="./rag_docs/history.txt",
-        collection_name="history",
-        overwrite=True
-    ))
+    
+    content = "\n".join([item.content for item in reranks])
 
-    print(rag.process_input(
-        input_path="./rag_docs/trick.txt",
-        collection_name="trick",
-        overwrite=True
-    ))
+
+
+    # rag = RAGPipeline("./rag_db")
+
+    # # _index = QdrantIndex(database_url, encoder=EmbClient(url_or_path=embedding_url))
+    # # _rerank = RerankerClient(url=reranker_url)
+    
+    # # 处理文档（示例路径）
+    # print(rag.process_input(
+    #     input_path="./rag_docs/base_info.txt",
+    #     collection_name="base_info",
+    #     overwrite=True
+    # ))
+
+    # print(rag.process_input(
+    #     input_path="./rag_docs/history.txt",
+    #     collection_name="history",
+    #     overwrite=True
+    # ))
+
+    # print(rag.process_input(
+    #     input_path="./rag_docs/trick.txt",
+    #     collection_name="trick",
+    #     overwrite=True
+    # ))
     
     # # 执行查询
     # question = "数据库说了啥？"
@@ -359,11 +402,10 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                 console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 思维链:\n[/bold green][bold blue]{reasoning_content}[/bold blue]")
                 console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 生成的MCT节点实例语言描述:\n[/bold green][bold blue]{workflow}[/bold blue]")
 
-                workflow_form, output_xml_form, messages = workflow_profiling(workflow_former, client, messages, context_variables, debug)
-                # workflow_form = "这是一个节点实例的xml描述"
-                # output_xml_form = "这是一个节点实例的xml输出"
+                workflow_form, output_json_form, messages = workflow_profiling(workflow_former, client, messages, context_variables, debug)
+
                 if workflow_form is None:
-                    console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] xml文件生成失败, 请给出修改建议.[/bold red]")
+                    console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] json文件生成失败, 请给出修改建议.[/bold red]")
                     last_message = "请提出具体修改建议或告诉我您想要创建MCT节点实例的需求是什么？"
                     # console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] has not created workflow form successfully, please modify your requirements again.[/bold red]")
                     # last_message = "Tell me what do you want to create with `Workflow Chain`?"
@@ -371,9 +413,9 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                 agent = workflow_generator 
                 context_variables["workflow_form"] = workflow_form
 
-                console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 生成的xml为:\n[/bold green][bold blue]{output_xml_form}[/bold blue]")
+                console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] 生成的json为:\n[/bold green][bold blue]{output_json_form}[/bold blue]")
                 last_message = '如果前端展示的工作流符合你的要求，请按"Enter"回车；否则，请提出具体修改建议。'#将为进行前端展示并开始生成协作工作流python脚本并驱动后端开始执行
-                # console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has created workflow form successfully with the following details:\n[/bold green][bold blue]{output_xml_form}[/bold blue]")
+                # console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has created workflow form successfully with the following details:\n[/bold green][bold blue]{output_json_form}[/bold blue]")
                 # last_message = "It is time to create the desired workflow python code, do you have any suggestions for creating the workflow?"
             # case "Workflow Creator Agent":
             #     suggestions = query #进来实际为""
@@ -384,7 +426,7 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
             #     # 'It is time to create the desired workflow, what task do you want to complete with the workflow? (Press Enter if none): ',
             #     # )
             #     task = default_value if not task.strip() else task
-            #     agent_response, messages = workflow_editing(workflow_creator_agent, client, messages, context_variables, workflow_form, output_xml_form, requirements, task, debug, suggestions)
+            #     agent_response, messages = workflow_editing(workflow_creator_agent, client, messages, context_variables, workflow_form, output_json_form, requirements, task, debug, suggestions)
             #     if agent_response.startswith("Case not resolved"):
             #         # console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] has not created workflow successfully with the following error: {agent_response}[/bold red]")
             #         console.print(f"[bold red][bold magenta]@{agent_name}[/bold magenta] 驱动后台执行失败，原因如下: {agent_response}[/bold red]")

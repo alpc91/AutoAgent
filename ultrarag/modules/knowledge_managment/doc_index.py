@@ -157,6 +157,8 @@ async def doc_index(
             fout.write(json.dumps(text_chunks, ensure_ascii=False) + "\n")
     # todo 有的模型没有sparse
     method = "dense"
+    # logger.info(f"nth_file:\n{nth_file}")
+    # logger.info(f"collection_name:\n{knowledge_id}")
     if nth_file == 0:
         await qdrant_index.create(collection_name=knowledge_id, index_type=method)
     await qdrant_index.insert(knowledge_id, payloads, func=lambda x: x["content"], method=method)

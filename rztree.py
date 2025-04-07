@@ -39,7 +39,7 @@ from rich.text import Text
 from rich.panel import Panel
 import re
 from autoagent.cli_utils.metachain_meta_agent import meta_agent
-from autoagent.cli_utils.metachain_meta_workflow import meta_workflow
+from autoagent.cli_utils.metachain_meta_workflow_rag import meta_workflow
 from autoagent.cli_utils.file_select import select_and_copy_files
 from evaluation.utils import update_progress, check_port_available, run_evaluation, clean_msg
 from constant import COMPLETION_MODEL
