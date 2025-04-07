@@ -109,6 +109,7 @@ class EnhancedMemory:
             model_name="BAAI/bge-large-zh-v1.5",
             device="cuda" if torch.cuda.is_available() else "cpu",
             normalize_embeddings=True,
+            local_files_only=True
         )
     
     def create_collection(self, collection_name: str):
