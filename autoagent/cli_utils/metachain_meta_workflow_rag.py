@@ -438,7 +438,7 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                 if workflow_form:
                     requirements = query
                 else:
-                    requirements = '这是向量数据库中检索出来的相关信息：\n'+rag_content+'\n这是当前的阶段和需求：'+sys_messages[stage % 4]+'\n'+query
+                    requirements = '这是向量数据库中检索出来的相关信息：\n'+rag_content+'\n\n这是当前的阶段和需求：'+sys_messages[stage % 4]+'\n'+query
                 
                 # print(f"实例要求:\n {requirements}\n\n")
 
