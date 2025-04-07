@@ -77,6 +77,28 @@ def file2text(file_tpye, file_path, text_splitter):
     return text_chunks
 
 
+def text2data(session_id, text, text_splitter):
+    text_chunks = text_splitter.split_text(text)
+    knowledge_id = [f"{session_id}" for _ in range(len(text_chunks))]
+    knowledge_name = knowledge_id[:]
+    segment_id = [i for i in range(len(text_chunks))]
+    full_title = [f"" for _ in range(len(text_chunks))]
+    content = text_chunks[:]
+    span, start_index, end_index = get_spans(text_chunks)
+    return ([
+        {
+            "knowledge_id": knowledge_id[i],
+            "knowledge_name": knowledge_name[i],
+            "segment_id": segment_id[i],
+            "full_title": full_title[i],
+            "content": content[i],
+            "span": span[i],
+            "start_index": start_index[i],
+            "end_index": end_index[i],
+        } for i in range(len(text_chunks))
+    ],
+    text_chunks)
+
 def file2data(session_id, file_tpye, file_path, nth_file, text_splitter):
     text_chunks = file2text(file_tpye, file_path, text_splitter)
     knowledge_id = [f"{session_id}_{nth_file}" for _ in range(len(text_chunks))]
@@ -161,6 +183,29 @@ async def doc_index(
     # logger.info(f"collection_name:\n{knowledge_id}")
     if nth_file == 0:
         await qdrant_index.create(collection_name=knowledge_id, index_type=method)
+    await qdrant_index.insert(knowledge_id, payloads, func=lambda x: x["content"], method=method)
+
+async def text_index(
+        qdrant_index: QdrantIndex,
+        text,
+        knowledge_id,
+        chunk_size,
+        chunk_overlap,
+        text_chunks_save_path
+        ):
+    
+    text_splitter=LocalSentenceSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap)
+    payloads, text_chunks = text2data(knowledge_id, text, text_splitter)
+
+    
+    with open(text_chunks_save_path, "a", encoding="utf8") as fout:
+        fout.write(json.dumps(text_chunks, ensure_ascii=False) + "\n")
+    # todo 有的模型没有sparse
+    method = "dense"
+    # logger.info(f"nth_file:\n{nth_file}")
+    # logger.info(f"collection_name:\n{knowledge_id}")
     await qdrant_index.insert(knowledge_id, payloads, func=lambda x: x["content"], method=method)
 
 

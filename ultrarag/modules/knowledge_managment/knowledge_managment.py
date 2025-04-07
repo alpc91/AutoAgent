@@ -92,7 +92,7 @@ class QdrantIndexSearchWarper:
         
 class Knowledge_Managment:
     @classmethod
-    async def index(cls, kb_config_id: str, kb_name: str, embedding_model_name: str, 
+    async def index(cls, qdrant_index: QdrantIndex, kb_config_id: str, kb_name: str, embedding_model_name: str, 
                     embedding_model_path: str, qdrant_path: str, text_chunks_save_path: str,
                     knowledge_id: str, file_paths: List[str], embedding_model: BaseEmbedding, 
                     chunk_size: int, chunk_overlap: int, other_settings: Dict[str, Any],
@@ -101,13 +101,7 @@ class Knowledge_Managment:
         side-effect: save index-structure on disk
         """
         
-        # 检查并删除 .lock 文件（todo）
-        lock_file_path = os.path.join(qdrant_path, '.lock')
-        if os.path.exists(lock_file_path):
-            logger.info(f"Removing .lock file at: {lock_file_path}")
-            os.remove(lock_file_path)
         
-        qdrant_index = QdrantIndex(url=qdrant_path, encoder=embedding_model)
         error_files = []
         empty_files = []
         n_file=0

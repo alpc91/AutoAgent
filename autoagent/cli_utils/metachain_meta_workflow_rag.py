@@ -38,6 +38,7 @@ import hashlib
 from ultrarag.modules.embedding import EmbeddingClient, load_model, OpenAIEmbedding
 # from ultrarag.modules.llm import OpenaiLLM, HuggingfaceClient, HuggingFaceServer, VllmServer
 from ultrarag.modules.reranker import RerankerClient, RerankerServer
+from ultrarag.modules.knowledge_managment.doc_index import text_index
 
 import json
 
@@ -246,31 +247,64 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     os.makedirs("./rag_db", exist_ok=True)
     os.makedirs(qdrant_dir, exist_ok=True)
 
+    # 检查并删除 .lock 文件（todo）
+    lock_file_path = os.path.join(qdrant_dir, '.lock')
+    if os.path.exists(lock_file_path):
+        logger.info(f"Removing .lock file at: {lock_file_path}")
+        os.remove(lock_file_path)
+    
+    qdrant_index = QdrantIndex(url=qdrant_dir, encoder=embedding)
+
     kb_name = "base_info"
-    file_list = ["./rag_docs/base_info.txt"]
+    file_list = ["./rag_docs/base_info.txt", "./rag_docs/history.txt", "./rag_docs/trick.txt"]
     kb_id = generate_knowledge_base_id(kb_name, kb_config_id, file_list, chunk_size, overlap, None)
     kb_path = f"./rag_db/{kb_id}.jsonl"
     kb_df = None
-    kb_df = asyncio.run(Knowledge_Managment.index(kb_config_id,kb_name,embedding_model_name,embedding_model_path,qdrant_dir,kb_path,kb_id,file_list,embedding,chunk_size,overlap,None,kb_df))
+
+
+
+    kb_df = asyncio.run(Knowledge_Managment.index(qdrant_index,kb_config_id,kb_name,embedding_model_name,embedding_model_path,qdrant_dir,kb_path,kb_id,file_list,embedding,chunk_size,overlap,None,kb_df))
     os.makedirs(os.path.dirname(path_kb_csv), exist_ok=True)
     kb_df.to_csv(path_kb_csv, index=False)
 
 
-    # database_url = ":memory:"
     searcher = Knowledge_Managment.get_searcher(
                 embedding_model=embedding,
                 knowledge_id=[kb_id],
                 knowledge_stat_tab_path=path_kb_csv
             )
-    
-    
     query = "从上下文信息中进行学习"
-    recalls = asyncio.run(searcher.search(query=query, topn=25))
-    scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
-    reranks = reranks[:5]
+    recalls = asyncio.run(searcher.search(query=query, topn=2))
+    content = "\n".join([item.content for item in recalls])
+    print(content)
+    # scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
+    # reranks = reranks[:5]
 
-    
-    content = "\n".join([item.content for item in reranks])
+
+
+    # asyncio.run(text_index(
+    #     qdrant_index=qdrant_index,
+    #     knowledge_id=kb_id,
+    #     text="李白是中国唐代著名的诗人，他的诗歌以豪放、奔放著称，尤其是《将进酒》一诗，表达了他对人生的热爱和对自由的向往。",
+    #     chunk_size=chunk_size,
+    #     chunk_overlap=overlap,
+    #     text_chunks_save_path=kb_path
+    # ))
+
+    # searcher = Knowledge_Managment.get_searcher(
+    #             embedding_model=embedding,
+    #             knowledge_id=[kb_id],
+    #             knowledge_stat_tab_path=path_kb_csv
+    #         )
+    # query = "从上下文信息中进行学习"
+    # recalls = asyncio.run(searcher.search(query="李白是谁？", topn=5))
+    # # scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
+    # # reranks = reranks[:5]
+
+    # content = "\n".join([item.content for item in recalls])
+    # print(content)
+
+
 
 
 
@@ -325,12 +359,15 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     stage = 0
     sys_messages = ["现在是状态确定阶段。", "现在是目标分析阶段。", "现在是任务分配阶段。", "现在是方案计划阶段。"]
     # print(sys_messages[stage % 4])
-    base_info_messages = rag.query(sys_messages[stage % 4], "base_info", top_k=2)['documents']
-    base_info_messages = "\n".join(base_info_messages)
-    history_messages = rag.query(sys_messages[stage % 4], "history", top_k=2)['documents']
-    history_messages = "\n".join(history_messages)
-    trick_messages = rag.query(sys_messages[stage % 4], "trick", top_k=2)['documents']
-    trick_messages = "\n".join(trick_messages)
+    searcher = Knowledge_Managment.get_searcher(
+            embedding_model=embedding,
+            knowledge_id=[kb_id],
+            knowledge_stat_tab_path=path_kb_csv
+        )
+    query = sys_messages[stage % 4]
+    recalls = asyncio.run(searcher.search(query=query, topn=2))
+    rag_content = "\n".join([item.content for item in recalls])
+    print(rag_content)
 
     last_message = sys_messages[stage % 4]+"请告诉我您对创建MCT节点实例还有什么具体需求？"#请告诉我您想要创建什么实例（选择哪些智能代理，形成什么工作流）？"#"Tell me what do you want to create with `Workflow Chain`?"
     workflow = None
@@ -349,24 +386,33 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
         if query=="" and workflow_form:
             # 将当前阶段信息和工作流添加到历史记录文件中
             with open("./rag_docs/history.txt", "a", encoding="utf-8") as history_file:
-                history_file.write("\n\n" + sys_messages[stage % 4] + "\n" + workflow)
+                history_file.write("\n\n" + sys_messages[stage % 4]+"\n该阶段的协作流程如下：\n"+workflow)
             
             # 更新RAG数据库
-            print(rag.add_text(sys_messages[stage % 4]+"\n"+workflow, "history"))
+            # print(rag.add_text(sys_messages[stage % 4]+"\n该阶段的协作流程如下：\n"+workflow, "history"))
+            asyncio.run(text_index(
+                qdrant_index=qdrant_index,
+                knowledge_id=kb_id,
+                text=sys_messages[stage % 4]+"\n该阶段的协作流程如下：\n"+workflow,
+                chunk_size=chunk_size,
+                chunk_overlap=overlap,
+                text_chunks_save_path=kb_path
+            ))
 
             agent = workflow_generator
             stage += 1
             messages = []
-            # print(sys_messages[stage % 4])
-            base_info_messages = rag.query(sys_messages[stage % 4], "base_info", top_k=2)['documents']
-            base_info_messages = "\n".join(base_info_messages)
-            history_messages = rag.query(sys_messages[stage % 4], "history", top_k=2)['documents']
-            history_messages = "\n".join(history_messages)
-            trick_messages = rag.query(sys_messages[stage % 4], "trick", top_k=2)['documents']
-            trick_messages = "\n".join(trick_messages)
-            # print(base_info_messages)
-            # print(history_messages)
-            # print(trick_messages)
+
+            searcher = Knowledge_Managment.get_searcher(
+                    embedding_model=embedding,
+                    knowledge_id=[kb_id],
+                    knowledge_stat_tab_path=path_kb_csv
+                )
+            query = sys_messages[stage % 4]
+            recalls = asyncio.run(searcher.search(query=query, topn=2))
+            rag_content = "\n".join([item.content for item in recalls])
+            print(rag_content)
+
             last_message = sys_messages[stage % 4]+"请告诉我您对创建MCT节点实例还有什么具体需求？"
             workflow = None
             workflow_form = None
@@ -392,7 +438,7 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                 if workflow_form:
                     requirements = query
                 else:
-                    requirements = base_info_messages+'\n'+history_messages+'\n'+trick_messages+'\n'+sys_messages[stage % 4]+'\n'+query
+                    requirements = '这是向量数据库中检索出来的相关信息：\n'+rag_content+'\n这是当前的阶段和需求：'+sys_messages[stage % 4]+'\n'+query
                 
                 # print(f"实例要求:\n {requirements}\n\n")
 
