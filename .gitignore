@@ -34,3 +34,5 @@ terminal_tmp/*
 tmp_shell/
 user_db/
 rag_db/
+rag_db_qdrant/
+rag_docs/

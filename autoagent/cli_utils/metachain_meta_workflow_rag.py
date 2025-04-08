@@ -37,7 +37,7 @@ from ultrarag.modules.knowledge_managment import Knowledge_Managment
 import hashlib
 from ultrarag.modules.embedding import EmbeddingClient, load_model, OpenAIEmbedding
 # from ultrarag.modules.llm import OpenaiLLM, HuggingfaceClient, HuggingFaceServer, VllmServer
-from ultrarag.modules.reranker import RerankerClient, RerankerServer
+from ultrarag.modules.reranker import RerankerClient, RerankerServer, BCERerankServer
 from ultrarag.modules.knowledge_managment.doc_index import text_index
 
 import json
@@ -255,12 +255,11 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     
     qdrant_index = QdrantIndex(url=qdrant_dir, encoder=embedding)
 
-    kb_name = "base_info"
-    file_list = ["./rag_docs/base_info.txt", "./rag_docs/history.txt", "./rag_docs/trick.txt"]
+    kb_name = "knowledge_base"
+    file_list = ["./rag_docs/base_info.txt", "./rag_docs/history.txt", "./rag_docs/trick.txt", "./rag_docs/sanguo.txt"]
     kb_id = generate_knowledge_base_id(kb_name, kb_config_id, file_list, chunk_size, overlap, None)
     kb_path = f"./rag_db/{kb_id}.jsonl"
     kb_df = None
-
 
 
     kb_df = asyncio.run(Knowledge_Managment.index(qdrant_index,kb_config_id,kb_name,embedding_model_name,embedding_model_path,qdrant_dir,kb_path,kb_id,file_list,embedding,chunk_size,overlap,None,kb_df))
@@ -268,17 +267,19 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     kb_df.to_csv(path_kb_csv, index=False)
 
 
-    searcher = Knowledge_Managment.get_searcher(
-                embedding_model=embedding,
-                knowledge_id=[kb_id],
-                knowledge_stat_tab_path=path_kb_csv
-            )
-    query = "从上下文信息中进行学习"
-    recalls = asyncio.run(searcher.search(query=query, topn=2))
-    content = "\n".join([item.content for item in recalls])
-    print(content)
-    # scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
-    # reranks = reranks[:5]
+
+
+    # searcher = Knowledge_Managment.get_searcher(
+    #             embedding_model=embedding,
+    #             knowledge_id=[kb_id],
+    #             knowledge_stat_tab_path=path_kb_csv
+    #         )
+    # query = "从上下文信息中进行学习"
+    # recalls = asyncio.run(searcher.search(query=query, topn=25))
+    # content = "\n".join([item.content for item in recalls])
+    # print(content)
+    # # scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
+    # # reranks = reranks[:5]
 
 
 
@@ -296,12 +297,25 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     #             knowledge_id=[kb_id],
     #             knowledge_stat_tab_path=path_kb_csv
     #         )
-    # query = "从上下文信息中进行学习"
-    # recalls = asyncio.run(searcher.search(query="李白是谁？", topn=5))
-    # # scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
-    # # reranks = reranks[:5]
+    # query = "李白是唐代的吗？"
+    # recalls = asyncio.run(searcher.search(query=query, topn=25))
+    # scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
+    # reranks = reranks[:2]
 
-    # content = "\n".join([item.content for item in recalls])
+    # content = "\n".join([item.content for item in reranks])
+    # print(content)
+
+    # searcher = Knowledge_Managment.get_searcher(
+    #             embedding_model=embedding,
+    #             knowledge_id=[kb_id],
+    #             knowledge_stat_tab_path=path_kb_csv
+    #         )
+    # query = "刘备是哪里人？"
+    # recalls = asyncio.run(searcher.search(query=query, topn=25))
+    # scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
+    # reranks = reranks[:2]
+
+    # content = "\n".join([item.content for item in reranks])
     # print(content)
 
 
@@ -357,16 +371,21 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     messages = []
 
     stage = 0
-    sys_messages = ["现在是状态确定阶段。", "现在是目标分析阶段。", "现在是任务分配阶段。", "现在是方案计划阶段。"]
+    sys_messages = ["状态确定阶段", "目标分析阶段", "任务分配阶段", "方案计划阶段"]
     # print(sys_messages[stage % 4])
+
+
     searcher = Knowledge_Managment.get_searcher(
             embedding_model=embedding,
             knowledge_id=[kb_id],
             knowledge_stat_tab_path=path_kb_csv
         )
     query = sys_messages[stage % 4]
-    recalls = asyncio.run(searcher.search(query=query, topn=2))
-    rag_content = "\n".join([item.content for item in recalls])
+    recalls = asyncio.run(searcher.search(query=query, topn=25))
+    scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
+    reranks = reranks[:2]
+
+    rag_content = "\n".join([item.content for item in reranks])
     print(rag_content)
 
     last_message = sys_messages[stage % 4]+"请告诉我您对创建MCT节点实例还有什么具体需求？"#请告诉我您想要创建什么实例（选择哪些智能代理，形成什么工作流）？"#"Tell me what do you want to create with `Workflow Chain`?"
@@ -409,8 +428,11 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                     knowledge_stat_tab_path=path_kb_csv
                 )
             query = sys_messages[stage % 4]
-            recalls = asyncio.run(searcher.search(query=query, topn=2))
-            rag_content = "\n".join([item.content for item in recalls])
+            recalls = asyncio.run(searcher.search(query=query, topn=25))
+            scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
+            reranks = reranks[:2]
+
+            rag_content = "\n".join([item.content for item in reranks])
             print(rag_content)
 
             last_message = sys_messages[stage % 4]+"请告诉我您对创建MCT节点实例还有什么具体需求？"

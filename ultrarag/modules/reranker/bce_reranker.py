@@ -18,8 +18,8 @@ class RerankerModel:
             **kwargs
         ):
         
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, **kwargs)
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_name_or_path, **kwargs)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True, **kwargs)
+        self.model = AutoModelForSequenceClassification.from_pretrained(model_name_or_path, trust_remote_code=True, **kwargs)
         logger.info(f"Loading from `{model_name_or_path}`.")
         
         num_gpus = torch.cuda.device_count()
@@ -111,7 +111,7 @@ class BCERerankServer(BaseRerank):
         self.rerank_model = RerankerModel(model_name_or_path=model_path, device=device, **kargs)
 
         
-    def scoring(self, query: str, contents: List[str]) -> List[float]:
+    async def scoring(self, query: str, contents: List[str]) -> List[float]:
         qd_pairs = [(query, item) for item in contents]
         scores = self.rerank_model.compute_score(qd_pairs, batch_size=self.batch_size, max_length=self.max_length)
         scores = [scores] if isinstance(scores, float) else scores

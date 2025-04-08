@@ -10,6 +10,7 @@ class ChatBlueprint(Blueprint):
         self.socketio = socketio
         self.namespace = '/chat'
         self.work = Work(context_variables) 
+        # on_emit_message(self.work.last_message)
 
         # 注册路由
         @self.route('/')
@@ -37,6 +38,7 @@ class ChatBlueprint(Blueprint):
             print("############### chat on_connect ", request.args['username'])
             session['username'] = request.args['username']
             emit('message', {'message': session['username'] + ' has joined.'}, broadcast=True)
+            emit('message', {'message': '现在是状态确定阶段,请输入开始。'}, broadcast=True)
             
 
         def on_disconnect():
