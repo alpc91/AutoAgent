@@ -9,6 +9,7 @@ from dataclasses import dataclass, asdict
 from ultrarag.common.utils import format_view
 
 from .prompts import RENOTE_PROMPTS
+import asyncio
 
 @dataclass
 class ReNoteState:
@@ -78,7 +79,7 @@ class ReNote:
 
 
 
-    async def arun(self, query: str, topn: str=5):
+    def arun(self, query: str, topn: str=5):
         if query == "": 
             raise ValueError("query is empty")
         
@@ -87,42 +88,42 @@ class ReNote:
         curr_note, best_note = '', ''
 
         # init note
-        recalls = await self.retriever(query=query, topn=topn)
+        recalls = asyncio.run(self.retriever(query=query, topn=topn))
         recalls = [item.content for item in recalls]
-        curr_note = best_note = await self.define_notes(query, recalls)
+        curr_note = best_note = asyncio.run(self.define_notes(query, recalls))
         state_list.append(ReNoteState(curr_query=query, curr_refs=recalls, 
                                         curr_note=curr_note, best_note=best_note))
         refs_list.extend(recalls)
-        yield dict(state=f"Note Init: {query}", value=dict(recalls=recalls, best_note=best_note))
+        # print(dict(state=f"Note Init: {query}", value=dict(recalls=recalls, best_note=best_note)))
 
         for step in range(self._max_step):
             if len(refs_list) > self._max_topn: break
             
-            curr_query = await self.gen_new_query(query, best_note, query_list)
+            curr_query = asyncio.run(self.gen_new_query(query, best_note, query_list))
             query_list.append(curr_query)
             curr_query = curr_query.replace("\n", "")
 
             query_str = f"{curr_query}\n{query}"
-            curr_refs = await self.retriever(query=query_str, topn=topn)
+            curr_refs = asyncio.run(self.retriever(query=query_str, topn=topn))
             curr_refs = [item.content for item in curr_refs]
             
             refs_filter = list(filter(lambda x: x not in refs_list, curr_refs))
             refs_list.extend(refs_filter)
             if not refs_filter: break
             
-            curr_note = await self.refine_notes(query, refs_filter, best_note)
-            best_note = await self.update_notes(query, curr_note, best_note)
+            curr_note = asyncio.run(self.refine_notes(query, refs_filter, best_note))
+            best_note = asyncio.run(self.update_notes(query, curr_note, best_note))
             state_list.append(ReNoteState(curr_query=curr_query, curr_refs=curr_refs, 
                                             curr_note=curr_note, best_note=best_note))
             new_query_str = curr_query.replace("\n", "")
-            yield dict(state=f"Note Update: {new_query_str}", 
-                       value=dict(recalls=refs_filter, curr_note=curr_note, best_note=best_note))
+            # print(dict(state=f"Note Update: {new_query_str}", 
+            #            value=dict(recalls=refs_filter, curr_note=curr_note, best_note=best_note)))
         
-        yield dict(state="Note Summary: ", value=best_note)
-        # final_answer = await self.answer_by_notes(query=query, notes=best_note)
+        # print(dict(state="Note Summary: ", value=best_note))
+        final_answer = asyncio.run(self.answer_by_notes(query=query, notes=best_note))
         
-        # if isinstance(final_answer, str):
-        #     yield dict(state='data',value=final_answer)
+        if isinstance(final_answer, str):
+            return dict(state='data',value=final_answer)
         # else:
         #     async for item in final_answer:
         #         yield dict(state='data',value=final_answer)

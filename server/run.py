@@ -3,7 +3,7 @@ import argparse
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from chat import ChatBlueprint  
-from rztree import rztree
+from server_rztree import rztree
 
 
 class Server(Flask):

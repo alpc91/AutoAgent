@@ -41,6 +41,9 @@ from ultrarag.modules.reranker import RerankerClient, RerankerServer, BCERerankS
 from ultrarag.modules.knowledge_managment.doc_index import text_index
 
 import json
+from constant import API_BASE_URL, COMPLETION_MODEL
+from ultrarag.workflow.ultraragflow import RenoteFlow
+from ultrarag.modules.llm import OpenaiLLM
 
 def workflow_generating(workflow_generator, client, messages, context_variables, requirements, debug):
     messages.append({"role": "user", "content": requirements})
@@ -212,6 +215,18 @@ def generate_knowledge_base_id(kb_name, kb_config_id, file_list, chunk_size, ove
     combined_str = f"{kb_name}-{kb_config_id}-{file_list}-{chunk_size}-{overlap}-{others}"
     return hashlib.md5(combined_str.encode()).hexdigest()
 
+async def process_async_generator(async_gen):
+    """
+    处理异步生成器，逐步获取结果。
+    """
+    results = []
+    async for item in async_gen:
+        results.append(item)  # 将每个结果存储到列表中
+        print(f"Received item: {item}")  # 打印每个结果
+    return results
+
+
+
 def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     print('\033[s\033[?25l', end='')  # Save cursor position and hide cursor
     logger = LoggerManager.get_logger()
@@ -256,7 +271,8 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     qdrant_index = QdrantIndex(url=qdrant_dir, encoder=embedding)
 
     kb_name = "knowledge_base"
-    file_list = ["./rag_docs/base_info.txt", "./rag_docs/history.txt", "./rag_docs/trick.txt", "./rag_docs/sanguo.txt"]
+    # file_list = ["./rag_docs/base_info.txt", "./rag_docs/history.txt", "./rag_docs/trick.txt", "./rag_docs/sanguo.txt"]
+    file_list = ["./rag_docs/21-F-0520_JP_3-60_9-28-2018.pdf"]
     kb_id = generate_knowledge_base_id(kb_name, kb_config_id, file_list, chunk_size, overlap, None)
     kb_path = f"./rag_db/{kb_id}.jsonl"
     kb_df = None
@@ -265,6 +281,17 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     kb_df = asyncio.run(Knowledge_Managment.index(qdrant_index,kb_config_id,kb_name,embedding_model_name,embedding_model_path,qdrant_dir,kb_path,kb_id,file_list,embedding,chunk_size,overlap,None,kb_df))
     os.makedirs(os.path.dirname(path_kb_csv), exist_ok=True)
     kb_df.to_csv(path_kb_csv, index=False)
+
+    llm = OpenaiLLM(base_url=API_BASE_URL, api_key=os.environ["OPENAI_API_KEY"], model=COMPLETION_MODEL)
+    searcher = Knowledge_Managment.get_searcher(
+        embedding_model=embedding,
+        knowledge_id=[kb_id],
+        knowledge_stat_tab_path=path_kb_csv
+    )
+    renote_inst = RenoteFlow.from_modules(
+        llm=llm,
+        database=searcher
+    )
 
 
 
@@ -375,18 +402,52 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     # print(sys_messages[stage % 4])
 
 
-    searcher = Knowledge_Managment.get_searcher(
-            embedding_model=embedding,
-            knowledge_id=[kb_id],
-            knowledge_stat_tab_path=path_kb_csv
-        )
-    query = sys_messages[stage % 4]
-    recalls = asyncio.run(searcher.search(query=query, topn=25))
-    scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
-    reranks = reranks[:2]
+    # 调用异步生成器
+    # async_gen = renote_inst.aquery(
+    #     query=sys_messages[stage % 4], 
+    #     messages=renote_messages
+    # )
 
-    rag_content = "\n".join([item.content for item in reranks])
+    # 使用 asyncio.run 调用处理异步生成器的协程
+    # response = asyncio.run(process_async_generator(async_gen))
+    response = asyncio.run(renote_inst.aquery(
+        query=sys_messages[stage % 4], 
+        messages=messages
+    ))
+    # print(response)
+
+    rag_content = ""
+    for item in response:
+        if item['state'] == "Note Summary: ": 
+            rag_content += item['value']
     print(rag_content)
+#     answer_by_notes_prompt = \
+# '''你是一位文字回复专家，尤其擅长根据笔记措辞回复，现在，你被提供了1个问题，和与问题相关的笔记。请你结合笔记和你自身的知识回答这些问题。
+# 请在回答时遵循一个规则：如果问题是中文，请用中文回答；如果问题是英文，请用英文回答；务必遵循这条规则。
+
+# 问题：{query}
+
+# 与问题相关的笔记：{note}
+
+# 请给出你的回答：
+# '''
+#     rag_content = answer_by_notes_prompt.format(query=query, note=notes)
+    
+    # renote_messages.append({"role": "assistant", "content": pure_response})
+
+
+    # searcher = Knowledge_Managment.get_searcher(
+    #         embedding_model=embedding,
+    #         knowledge_id=[kb_id],
+    #         knowledge_stat_tab_path=path_kb_csv
+    #     )
+    # query = sys_messages[stage % 4]
+    # recalls = asyncio.run(searcher.search(query=query, topn=25))
+    # scores, reranks = asyncio.run(reranker.rerank(query=query, nodes=recalls, func=lambda x: x.content))
+    # reranks = reranks[:2]
+
+    # rag_content = "\n".join([item.content for item in reranks])
+    # print(rag_content)
 
     last_message = sys_messages[stage % 4]+"请告诉我您对创建MCT节点实例还有什么具体需求？"#请告诉我您想要创建什么实例（选择哪些智能代理，形成什么工作流）？"#"Tell me what do you want to create with `Workflow Chain`?"
     workflow = None
@@ -460,7 +521,7 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
                 if workflow_form:
                     requirements = query
                 else:
-                    requirements = '这是向量数据库中检索出来的相关信息：\n'+rag_content+'\n\n这是当前的阶段和需求：'+sys_messages[stage % 4]+'\n'+query
+                    requirements = '这是向量数据库中检索出来的相关信息笔记：\n'+rag_content+'\n\n这是当前的阶段和需求：'+sys_messages[stage % 4]+'\n'+query
                 
                 # print(f"实例要求:\n {requirements}\n\n")
 

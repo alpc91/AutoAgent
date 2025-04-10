@@ -61,4 +61,47 @@ class OpenaiLLM(BaseLLM):
         # raise RuntimeError(f"failed with {self.max_retries} times")
         warnings.warn(f"failed with {self.max_retries} times")
         return None
+    
+    def run(self, messages: List[Dict[str, str]], stream: bool=False, **kargs):
+        chat_kargs = self.kargs
+        chat_kargs.update(kargs)
+
+        checked_kargs = {key: chat_kargs[key] for key in AVAIL_ARGS if key in chat_kargs}
+
+        if isinstance(messages, dict):
+            if 'role' not in messages or 'content' not in messages:
+                raise ValueError(f"messages iformat error: {messages}")
+            messages = [messages]
+        
+        if not isinstance(messages, list):
+            raise ValueError(f"messages is not list")
+
+        async def chat_generator(messages):
+            response = self._generator.chat.completions.create(
+                messages=messages,
+                **checked_kargs,
+                stream=True,
+            )
+            async for item in response:
+                if item.choices[0].delta.content == None: continue
+                yield item.choices[0].delta.content
+
+
+        for retry in range(self.max_retries):
+            try:
+                if stream:
+                    return chat_generator(messages=messages)
+                else:
+                    response = self._generator.chat.completions.create(
+                        messages=messages,
+                        **checked_kargs,
+                        stream=False,
+                    )
+                    return response.choices[0].message.content
+            except:
+                warnings.warn(f"retry {retry}: {traceback.format_exc()}")
+        
+        # raise RuntimeError(f"failed with {self.max_retries} times")
+        warnings.warn(f"failed with {self.max_retries} times")
+        return None
             

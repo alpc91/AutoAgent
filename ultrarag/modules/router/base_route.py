@@ -13,7 +13,7 @@ class BaseRouter:
 用户的对话历史：
 {history_dialogue}
 
-用户最后输出的问题：{query}
+用户最后输入的问题：{query}
 现在仅需要给出输出，请勿解释：
 输出:
 '''

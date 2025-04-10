@@ -35,11 +35,6 @@ from ultrarag.modules.embedding import EmbeddingClient, load_model, OpenAIEmbedd
 from ultrarag.modules.reranker import RerankerClient, RerankerServer, BCERerankServer
 from ultrarag.modules.knowledge_managment.doc_index import text_index
 import json
-from constant import API_BASE_URL, COMPLETION_MODEL
-from ultrarag.workflow.ultraragflow import RenoteFlow
-from ultrarag.modules.llm import OpenaiLLM
-
-
 
 def generate_kb_config_id(embedding_model_name):
     """
@@ -78,7 +73,7 @@ class Work:
         self.workflow_former = get_workflow_former_agent("openai/qwen-plus")
         self.workflow_creator_agent = get_workflow_creator_agent("openai/qwen-plus")
 
-        self.path_kb_csv = "rag_db/manage_table/knowledge_base_manager.csv"
+        self.path_kb_csv = "/home/crf/workspace/AutoAgent/rag_db/manage_table/knowledge_base_manager.csv"
 
         # 初始化流水线
         embedding_model_name = "OpenBMB/MiniCPM-Embedding-Light"
@@ -93,9 +88,9 @@ class Work:
 
         
         kb_config_id = generate_kb_config_id(embedding_model_name)
-        qdrant_dir = f"rag_db_qdrant"
+        qdrant_dir = f"/home/crf/workspace/AutoAgent/rag_db_qdrant"
 
-        os.makedirs("rag_db", exist_ok=True)
+        os.makedirs("/home/crf/workspace/AutoAgent/rag_db", exist_ok=True)
         os.makedirs(qdrant_dir, exist_ok=True)
 
         # 检查并删除 .lock 文件（todo）
@@ -107,10 +102,9 @@ class Work:
         self.qdrant_index = QdrantIndex(url=qdrant_dir, encoder=self.embedding)
 
         kb_name = "knowledge_base"
-        file_list = ["rag_docs/21-F-0520_JP_3-60_9-28-2018.pdf"]#
-        # file_list = ["rag_docs/base_info.txt", "rag_docs/history.txt", "rag_docs/trick.txt"]
+        file_list = ["/home/crf/workspace/AutoAgent/rag_docs/21-F-0520_JP_3-60_9-28-2018.pdf"]#"/home/crf/workspace/AutoAgent/rag_docs/base_info.txt", "/home/crf/workspace/AutoAgent/rag_docs/history.txt", "/home/crf/workspace/AutoAgent/rag_docs/trick.txt", 
         self.kb_id = generate_knowledge_base_id(kb_name, kb_config_id, file_list, self.chunk_size, self.overlap, None)
-        self.kb_path = f"rag_db/{self.kb_id}.jsonl"
+        self.kb_path = f"/home/crf/workspace/AutoAgent/rag_db/{self.kb_id}.jsonl"
         kb_df = None
 
 
@@ -118,16 +112,27 @@ class Work:
         os.makedirs(os.path.dirname(self.path_kb_csv), exist_ok=True)
         kb_df.to_csv(self.path_kb_csv, index=False)
 
-        llm = OpenaiLLM(base_url=API_BASE_URL, api_key=os.environ["OPENAI_API_KEY"], model=COMPLETION_MODEL)
-        searcher = Knowledge_Managment.get_searcher(
-            embedding_model=self.embedding,
-            knowledge_id=[self.kb_id],
-            knowledge_stat_tab_path=self.path_kb_csv
-        )
-        self.renote_inst = RenoteFlow.from_modules(
-            llm=llm,
-            database=searcher
-        )
+        # # 初始化流水线
+        # self.rag = RAGPipeline("../rag_db")
+
+        # # 处理文档（示例路径）
+        # print(self.rag.process_input(
+        #     input_path="../rag_docs/base_info.txt",
+        #     collection_name="base_info",
+        #     overwrite=True
+        # ))
+
+        # print(self.rag.process_input(
+        #     input_path="../rag_docs/history.txt",
+        #     collection_name="history",
+        #     overwrite=True
+        # ))
+
+        # print(self.rag.process_input(
+        #     input_path="../rag_docs/trick.txt",
+        #     collection_name="trick",
+        #     overwrite=True
+        # ))
 
         self.agent = self.workflow_generator
         self.agents = {
@@ -146,29 +151,17 @@ class Work:
 
         self.stage = 0
         self.sys_messages = ["状态确定阶段", "目标分析阶段", "任务分配阶段", "方案计划阶段"]
+        searcher = Knowledge_Managment.get_searcher(
+            embedding_model=self.embedding,
+            knowledge_id=[self.kb_id],
+            knowledge_stat_tab_path=self.path_kb_csv
+        )
+        recalls = asyncio.run(searcher.search(query=self.sys_messages[self.stage % 4], topn=25))
+        scores, reranks = asyncio.run(self.reranker.rerank(query=self.sys_messages[self.stage % 4], nodes=recalls, func=lambda x: x.content))
+        reranks = reranks[:10]
 
-        response = asyncio.run(self.renote_inst.aquery(
-            query=self.sys_messages[self.stage % 4], 
-            messages=self.messages
-        ))
-        self.rag_content = ""
-        for item in response:
-            if item['state'] == "Note Summary: ": 
-                self.rag_content += item['value']
+        self.rag_content = "\n".join([item.content for item in reranks])
         print(self.rag_content)
-        
-        # searcher = Knowledge_Managment.get_searcher(
-        #     embedding_model=self.embedding,
-        #     knowledge_id=[self.kb_id],
-        #     knowledge_stat_tab_path=self.path_kb_csv
-        # )
-        # recalls = asyncio.run(searcher.search(query=self.sys_messages[self.stage % 4], topn=25))
-        # scores, reranks = asyncio.run(self.reranker.rerank(query=self.sys_messages[self.stage % 4], nodes=recalls, func=lambda x: x.content))
-        # reranks = reranks[:10]
-
-        # self.rag_content = "\n".join([item.content for item in reranks])
-        # print(self.rag_content)
-
 
         self.last_message = self.sys_messages[self.stage % 4]+"。请告诉我您对创建MCT节点实例还有什么具体需求？"#请告诉我您想要创建什么实例（选择哪些智能代理，形成什么工作流）？"#"Tell me what do you want to create with `Workflow Chain`?"
         self.workflow = None
@@ -179,9 +172,9 @@ class Work:
         print("message",message)
         print("workflow_form",self.workflow_form)
         if message=="ok" and self.workflow_form:
-            # print("xxxxxxxxxxxxxx",message)
+            print("xxxxxxxxxxxxxx",message)
             # 将当前阶段信息和工作流添加到历史记录文件中
-            with open("rag_docs/history.txt", "a", encoding="utf-8") as history_file:
+            with open("/home/crf/workspace/AutoAgent/rag_docs/history.txt", "a", encoding="utf-8") as history_file:
                 history_file.write("\n\n** " + self.sys_messages[self.stage % 4] + "\n" + self.workflow)
             
             # 更新RAG数据库
@@ -198,25 +191,17 @@ class Work:
 
             self.agent = self.workflow_generator
             self.stage += 1
-            # self.messages = []
-            # searcher = Knowledge_Managment.get_searcher(
-            #     embedding_model=self.embedding,
-            #     knowledge_id=[self.kb_id],
-            #     knowledge_stat_tab_path=self.path_kb_csv
-            # )
-            # recalls = asyncio.run(searcher.search(query=self.sys_messages[self.stage % 4], topn=25))
-            # scores, reranks = asyncio.run(self.reranker.rerank(query=self.sys_messages[self.stage % 4], nodes=recalls, func=lambda x: x.content))
-            # reranks = reranks[:10]
+            self.messages = []
+            searcher = Knowledge_Managment.get_searcher(
+                embedding_model=self.embedding,
+                knowledge_id=[self.kb_id],
+                knowledge_stat_tab_path=self.path_kb_csv
+            )
+            recalls = asyncio.run(searcher.search(query=self.sys_messages[self.stage % 4], topn=25))
+            scores, reranks = asyncio.run(self.reranker.rerank(query=self.sys_messages[self.stage % 4], nodes=recalls, func=lambda x: x.content))
+            reranks = reranks[:10]
 
-            # self.rag_content = "\n".join([item.content for item in reranks])
-            response = asyncio.run(self.renote_inst.aquery(
-                query=self.sys_messages[self.stage % 4], 
-                messages=self.messages
-            ))
-            self.rag_content = ""
-            for item in response:
-                if item['state'] == "Note Summary: ": 
-                    self.rag_content += item['value']
+            self.rag_content = "\n".join([item.content for item in reranks])
             print(self.rag_content)
 
             self.last_message = self.sys_messages[self.stage % 4]+"。请告诉我您对创建MCT节点实例还有什么具体需求？"
@@ -250,7 +235,7 @@ class Work:
                 if self.workflow_form:
                     requirements = message
                 else:
-                    requirements = '** 这是向量数据库中检索出来的相关信息形成的笔记：\n'+self.rag_content+'\n\n** 这是当前的阶段和需求：'+self.sys_messages[self.stage % 4]+'\n'+message
+                    requirements = '** 这是向量数据库中检索出来的相关信息：\n'+self.rag_content+'\n\n** 这是当前的阶段和需求：'+self.sys_messages[self.stage % 4]+'\n'+message
                 
                 # print(f"实例要求:\n {requirements}\n\n")
 

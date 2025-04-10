@@ -83,36 +83,7 @@ class RenoteFlow:
         logger.info(f'finish ingest file {file_path} into {collection_name} with {len(chunks)} chunks')
 
 
-    # def aquery(self, query: str, messages: List[Dict[str, str]], system_prompt=""):
-    #     """
-    #     Process queries and generate responses based on intent classification.
-        
-    #     Args:
-    #         query: User's input query
-    #         messages: Chat history in message format
-    #         collection: Collection name for knowledge retrieval
-    #         system_prompt: Optional system prompt for response generation
-            
-    #     Returns:
-    #         Generator or None: Response stream if query is valid
-    #     """
-    #     if not query: return None
-    #     self._renote._system_prompt = system_prompt
-    #     return self._renote.arun(query=query)
-
-    #     # route = await self._router.arun(query, messages)
-
-    #     # if not route.get("intent", None): return None
-        
-    #     # if route.get("intent") == 'retriever':
-    #     #     self._renote._system_prompt = system_prompt
-    #     #     return self._renote.arun(query=query)
-    
-    #     # if route.get('intent') == 'chat':
-    #     #     new_messages = messages + [{"role": "user", "content": query}]
-    #     #     return await self._synthesizer.arun(messages=new_messages, stream=True)
-
-    async def aquery(self, query: str, messages: List[Dict[str, str]], system_prompt=""):
+    async def aquery(self, query: str, messages: List[Dict[str, str]], collection, system_prompt=""):
         """
         Process queries and generate responses based on intent classification.
         
@@ -133,12 +104,8 @@ class RenoteFlow:
         
         if route.get("intent") == 'retriever':
             self._renote._system_prompt = system_prompt
-            response = self._renote.arun(query=query)
-            results = []
-            async for item in response:
-                results.append(item)
-            return results
+            return self._renote.arun(query=query, collection=collection)
     
         if route.get('intent') == 'chat':
             new_messages = messages + [{"role": "user", "content": query}]
-            return await self._synthesizer.arun(messages=new_messages, stream=False)
+            return await self._synthesizer.arun(messages=new_messages, stream=True)

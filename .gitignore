@@ -36,3 +36,4 @@ user_db/
 rag_db/
 rag_db_qdrant/
 rag_docs/
+task_agent/
