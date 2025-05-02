@@ -230,11 +230,11 @@ async def process_async_generator(async_gen):
 def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     print('\033[s\033[?25l', end='')  # Save cursor position and hide cursor
     logger = LoggerManager.get_logger()
-    workflow_generator = get_workflow_generator_agent("openai/qwen-plus")
-    workflow_former = get_workflow_former_agent("openai/qwen-plus")
-    workflow_creator_agent = get_workflow_creator_agent("openai/qwen-plus")
-    # workflow_generator = get_workflow_generator_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
-    # workflow_former = get_workflow_former_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
+    # workflow_generator = get_workflow_generator_agent("openai/qwen-plus")
+    # workflow_former = get_workflow_former_agent("openai/qwen-plus")
+    # workflow_creator_agent = get_workflow_creator_agent("openai/qwen-plus")
+    workflow_generator = get_workflow_generator_agent("hosted_vllm/Qwen/Qwen3-32B")
+    workflow_former = get_workflow_former_agent("hosted_vllm/Qwen/Qwen3-32B")
     # workflow_creator_agent = get_workflow_creator_agent("hosted_vllm/Qwen/QwQ-32B-AWQ")
     # workflow_former = get_workflow_former_agent("hosted_vllm/Qwen/Qwen-32B-Instruct-AWQ")
     # workflow_creator_agent = get_workflow_creator_agent("hosted_vllm/Qwen/Qwen-32B-Instruct-AWQ")
@@ -382,7 +382,7 @@ def meta_workflow(model: str, context_variables: dict, debug: bool = True):
     #     print(f"[相似度：{score:.2f}] {doc}...")
 
     agent = workflow_generator
-    agents = {workflow_generator.name.replace(' ', '_'): workflow_generator, workflow_former.name.replace(' ', '_'): workflow_former, workflow_creator_agent.name.replace(' ', '_'): workflow_creator_agent}
+    agents = {workflow_generator.name.replace(' ', '_'): workflow_generator, workflow_former.name.replace(' ', '_'): workflow_former}#, workflow_creator_agent.name.replace(' ', '_'): workflow_creator_agent}
     style = Style.from_dict({
         'bottom-toolbar': 'bg:#333333 #ffffff',
     })

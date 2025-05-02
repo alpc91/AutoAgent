@@ -74,8 +74,10 @@ class Work:
     def __init__(self, context_variables: dict):
         self.context_variables = context_variables
         self.logger = LoggerManager.get_logger()
-        self.workflow_generator = get_workflow_generator_agent("openai/qwen-plus")
-        self.workflow_former = get_workflow_former_agent("openai/qwen-plus")
+        # self.workflow_generator = get_workflow_generator_agent("openai/qwen-plus")
+        # self.workflow_former = get_workflow_former_agent("openai/qwen-plus")
+        self.workflow_generator = get_workflow_generator_agent("hosted_vllm/Qwen/Qwen3-30B-A3B-Base")
+        self.workflow_former = get_workflow_former_agent("hosted_vllm/Qwen/Qwen3-30B-A3B-Base")
         self.workflow_creator_agent = get_workflow_creator_agent("openai/qwen-plus")
 
         self.path_kb_csv = "rag_db/manage_table/knowledge_base_manager.csv"

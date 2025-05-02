@@ -150,7 +150,7 @@ class MetaChain:
 
         if 'openai' in create_model.lower():
             base_url = API_BASE_URL
-        elif 'qwen-' in create_model.lower():
+        elif 'qwen-' in create_model.lower() or 'qwen3-' in create_model.lower():
             base_url = QWEN_BASE_URL
         elif 'qwq' in create_model.lower():
             base_url = QWQ_BASE_URL
@@ -180,9 +180,9 @@ class MetaChain:
                     "base_url": base_url,
                     "temperature": 0.6,
                     "top_p": 0.95,
-                    "top_k": 40,
-                    "min_p": 0,
-                    # "max_tokens": 32768  # 设置最大输出长度
+                    "top_k": 20,
+                    # "min_p": 0,
+                    "max_tokens": 32768  # 设置最大输出长度
                     # "thinking": {"type": "enabled", "budget_tokens": 32768},
                 }
                 NO_SENDER_MODE = False
@@ -259,9 +259,9 @@ class MetaChain:
                         "base_url": base_url,
                         "temperature": 0.6,
                         "top_p": 0.95,
-                        "top_k": 40,
-                        "min_p": 0,
-                        # "max_tokens": 32768  # 设置最大输出长度
+                        "top_k": 20,
+                        # "min_p": 0,
+                        "max_tokens": 32768  # 设置最大输出长度
                     }
                     # print(create_params)
                     completion_response = completion(**create_params)
@@ -298,8 +298,9 @@ class MetaChain:
                     "base_url": base_url,
                     "temperature": 0.6,
                     "top_p": 0.95,
-                    "top_k": 40,
-                    "min_p": 0,
+                    "top_k": 20,
+                    # "min_p": 0,
+                    "max_tokens": 32768
                 }
                 completion_response = completion(**create_params)
 
@@ -367,10 +368,10 @@ class MetaChain:
                 "base_url": base_url,
                 "temperature": 0.6,
                 "top_p": 0.95,
-                "top_k": 40,
-                "min_p": 0,
+                "top_k": 20,
+                # "min_p": 0,
                 # "thinking": {"type": "enabled", "budget_tokens": 32768},
-                # "max_tokens": 32768  # 设置最大输出长度
+                "max_tokens": 32768  # 设置最大输出长度
             }
             NO_SENDER_MODE = False
             for not_sender_model in NOT_SUPPORT_SENDER:
@@ -782,7 +783,7 @@ class MetaChain:
 
         if 'openai' in create_model.lower():
             base_url = API_BASE_URL
-        elif 'qwen-' in create_model.lower():
+        elif 'qwen-' in create_model.lower() or 'qwen3-' in create_model.lower():
             base_url = QWEN_BASE_URL
         elif 'qwq' in create_model.lower():
             base_url = QWQ_BASE_URL
@@ -804,9 +805,9 @@ class MetaChain:
                 "base_url": base_url,
                 "temperature": 0.6,
                 "top_p": 0.95,
-                "top_k": 40,
-                "min_p": 0,
-                # "max_tokens": 32768  # 设置最大输出长度
+                "top_k": 20,
+                # "min_p": 0,
+                "max_tokens": 32768  # 设置最大输出长度
             }
             NO_SENDER_MODE = False
             for not_sender_model in NOT_SUPPORT_SENDER:
@@ -847,9 +848,9 @@ class MetaChain:
                     "base_url": base_url,
                     "temperature": 0.6,
                     "top_p": 0.95,
-                    "top_k": 40,
-                    "min_p": 0,
-                    # "max_tokens": 32768  # 设置最大输出长度
+                    "top_k": 20,
+                    # "min_p": 0,
+                    "max_tokens": 32768  # 设置最大输出长度
                 }
                 completion_response = await acompletion(**create_params)
 
@@ -879,8 +880,9 @@ class MetaChain:
                 "base_url": base_url,
                 "temperature": 0.6,
                 "top_p": 0.95,
-                "top_k": 40,
-                "min_p": 0,
+                "top_k": 20,
+                # "min_p": 0,
+                "max_tokens": 32768
             }
             completion_response = await acompletion(**create_params)
 
